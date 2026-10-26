@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.0.0';
+  var VERSI = '2.0.1';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -279,7 +279,8 @@ var HOK = (function () {
     if (d('selesai_olah') && d('selesai') && d('selesai_olah') > d('selesai')) E('selesai_olah', 'Pengolahan lahan harus selesai paling lambat tanggal selesai pekerjaan (SPK)');
     if (d('mulai_tanam') && d('mulai') && d('mulai_tanam') < d('mulai')) E('mulai_tanam', 'Penanaman tidak boleh dimulai sebelum tanggal mulai pekerjaan (SPK)');
     if (d('mulai_tanam') && d('selesai') && d('mulai_tanam') > d('selesai')) E('mulai_tanam', 'Penanaman harus dimulai paling lambat tanggal selesai pekerjaan');
-    if (d('mulai') && d('selesai') && hari(d('selesai')) - hari(d('mulai')) > 89) E('selesai', 'Rentang pekerjaan lebih dari 90 hari');
+    var batasSpk = num(ctx.setting.batas_hari_spk);
+    if (batasSpk > 0 && d('mulai') && d('selesai') && hari(d('selesai')) - hari(d('mulai')) + 1 > batasSpk) E('selesai', 'Rentang pekerjaan lebih dari ' + batasSpk + ' hari (batas diatur pusat di Pengaturan)');
     if (d('tgl_lap') && d('selesai') && d('tgl_lap') < d('selesai')) E('tgl_lap', 'Laporan pelaksanaan harus setelah pekerjaan selesai');
     if (d('tgl_bap') && d('selesai') && d('tgl_bap') < d('selesai')) E('tgl_bap', 'BA Pemeriksaan harus setelah pekerjaan selesai');
     if (d('tgl_bast') && d('tgl_bap') && d('tgl_bast') < d('tgl_bap')) E('tgl_bast', 'BAST harus sama dengan atau setelah BA Pemeriksaan');
@@ -618,7 +619,7 @@ var HOK = (function () {
   }
 
   function publikSetting(st) {
-    return { tahun: st.tahun || '2026', no_dipa: st.no_dipa || '', tgl_dipa: st.tgl_dipa || '', kpa: st.kpa || '', std_hokha: String((num(st.hokha_olah) || 15) + (num(st.hokha_tanam) || 25)), hokha_olah: st.hokha_olah || '15', hokha_tanam: st.hokha_tanam || '25', batas_hari_bulan: st.batas_hari_bulan || '', unit_pusat: st.unit_pusat || '' };
+    return { tahun: st.tahun || '2026', no_dipa: st.no_dipa || '', tgl_dipa: st.tgl_dipa || '', kpa: st.kpa || '', std_hokha: String((num(st.hokha_olah) || 15) + (num(st.hokha_tanam) || 25)), hokha_olah: st.hokha_olah || '15', hokha_tanam: st.hokha_tanam || '25', batas_hari_bulan: st.batas_hari_bulan || '', batas_hari_spk: st.batas_hari_spk || '', unit_pusat: st.unit_pusat || '' };
   }
 
   function poktanKeluar(p, h) {
@@ -939,7 +940,7 @@ var HOK = (function () {
     if (user.peran !== 'pusat') return gagal('AKSES', 'Hanya pusat yang boleh mengubah pengaturan');
     return env.lock(function () {
       var d = req.setting || {}, rows = [];
-      ['tahun', 'no_dipa', 'tgl_dipa', 'kpa', 'hokha_olah', 'hokha_tanam', 'batas_hari_bulan', 'unit_pusat'].forEach(function (k) { if (d[k] !== undefined) rows.push({ kunci: k, nilai: s(d[k]) }); });
+      ['tahun', 'no_dipa', 'tgl_dipa', 'kpa', 'hokha_olah', 'hokha_tanam', 'batas_hari_bulan', 'batas_hari_spk', 'unit_pusat'].forEach(function (k) { if (d[k] !== undefined) rows.push({ kunci: k, nilai: s(d[k]) }); });
       if (d.tgl_dipa && !isISO(d.tgl_dipa)) return gagal('VALIDASI', 'Tanggal DIPA tidak valid');
       if (rows.length) env.store.upsert('SETTING', rows);
       if (req.provinsi && req.provinsi.length) env.store.upsert('PROVINSI', req.provinsi.map(function (r) { return { provinsi: s(r.provinsi), kode: s(r.kode), upah_pl: s(r.upah_pl), upah_br: s(r.upah_br) }; }).filter(function (r) { return r.provinsi; }));
@@ -1104,7 +1105,7 @@ var HOK = (function () {
   function salinDariLama(env, lama) {
     var hasil = { setting: 0, provinsi: 0, kabupaten: 0, poktan: 0, dilewati: 0 };
     var stLama = settingObj(lama.setting || []), salin = {};
-    ['tahun', 'no_dipa', 'tgl_dipa', 'kpa', 'batas_hari_bulan', 'unit_pusat'].forEach(function (k) { if (s(stLama[k])) salin[k] = s(stLama[k]); });
+    ['tahun', 'no_dipa', 'tgl_dipa', 'kpa', 'batas_hari_bulan', 'batas_hari_spk', 'unit_pusat'].forEach(function (k) { if (s(stLama[k])) salin[k] = s(stLama[k]); });
     var rowsSet = Object.keys(salin).map(function (k) { return { kunci: k, nilai: salin[k] }; });
     if (rowsSet.length) { env.store.upsert('SETTING', rowsSet); hasil.setting = rowsSet.length; }
     if ((lama.provinsi || []).length) { env.store.upsert('PROVINSI', lama.provinsi.map(function (p) { var o = {}; TABEL.PROVINSI.forEach(function (k) { o[k] = s(p[k]); }); return o; })); hasil.provinsi = lama.provinsi.length; }
