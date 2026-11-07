@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.0.5';
+  var VERSI = '2.1.0';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -17,7 +17,7 @@ var HOK = (function () {
     POKTAN: ['id', 'kab', 'keg', 'poktan', 'ketua', 'nik_ketua', 'jalan', 'desa', 'kec', 'bank', 'norek', 'namarek', 'npwp',
       'luas', 'hokha_khusus', 'upah_khusus', 'no_cpcl', 'tgl_cpcl', 'no_spk', 'tgl_spk', 'tempat_spk', 'jalan_spk', 'spk_sd',
       'tgl_sptjm', 'tgl_rukk', 'mulai', 'selesai', 'tgl_lap', 'no_bap', 'tgl_bap', 'no_bast', 'tgl_bast', 'no_kw', 'tgl_kw',
-      'tgl_tt', 'real_luas', 'folder_id', 'dok', 'diubah', 'oleh', 'mulai_olah', 'npwp_an', 'selesai_olah', 'mulai_tanam'],
+      'tgl_tt', 'real_luas', 'folder_id', 'dok', 'diubah', 'oleh', 'mulai_olah', 'npwp_an', 'selesai_olah', 'mulai_tanam', 'jenis_kel'],
     PEKERJA: ['id', 'id_poktan', 'kab', 'nama', 'nik', 'alamat', 'hadir', 'diubah', 'oleh', 'jenis'],
     PENGGUNA: ['id', 'nama', 'peran', 'provinsi', 'kab', 'kode_hash', 'aktif', 'dibuat', 'terakhir_masuk'],
     LOG: ['waktu', 'pengguna', 'aksi', 'rincian']
@@ -55,6 +55,22 @@ var HOK = (function () {
   // Struktur folder dokumen per poktan dan slot berkas yang diharapkan
   var SUBFOLDER = { rek: '1_Buku_Rekening', geo: '2_Foto_Geotag', ktp: '3_KTP_Pekerja', ttd: '4_Dokumen_TTD', idn: '5_KTP_Ketua_NPWP' };
   var NPWP_AN = ['Kelompok Tani', 'Ketua Kelompok Tani', 'Pengurus lain'];
+  // jenis kelompok penerima: memengaruhi sebutan lembaga di semua dokumen keluaran
+  var JENIS_KEL = {
+    'Gabungan Kelompok Tani': { nama: 'Gabungan Kelompok Tani', label: 'Gabungan Kelompok Tani', besar: 'GABUNGAN KELOMPOK TANI', singkat: 'Gapoktan', kalimat: 'gabungan kelompok tani' },
+    'Kelompok Tani': { nama: 'Kelompok Tani', label: 'Kelompok Tani', besar: 'KELOMPOK TANI', singkat: 'Poktan', kalimat: 'kelompok tani' },
+    'Koperasi Tebu': { nama: 'Koperasi Tebu', label: 'Koperasi Tebu', besar: 'KOPERASI TEBU', singkat: 'Koperasi', kalimat: 'koperasi tebu' }
+  };
+  var DAFTAR_JENIS_KEL = ['Gabungan Kelompok Tani', 'Kelompok Tani', 'Koperasi Tebu'];
+  function jenisKel(p) { return JENIS_KEL[s(p && p.jenis_kel)] || JENIS_KEL['Kelompok Tani']; }
+  // NPWP atas nama (nilai tersimpan tetap) ditampilkan sesuai jenis kelompok
+  function npwpAn(p) {
+    var a = s(p && p.npwp_an), j = jenisKel(p);
+    if (a === 'Kelompok Tani') return j.label;
+    if (a === 'Ketua Kelompok Tani') return 'Ketua ' + j.label;
+    return a;
+  }
+
   var SLOT = {
     idn: [['ktp_ketua', 'KTP ketua kelompok tani'], ['npwp', 'NPWP kelompok tani / ketua']],
     rek: [['depan', 'Halaman depan'], ['mutasi_sebelum', 'Mutasi sebelum dana masuk'], ['mutasi_sesudah', 'Mutasi setelah ditarik']],
@@ -250,7 +266,8 @@ var HOK = (function () {
     var out = [];
     function E(field, pesan) { out.push({ level: 'error', field: field, pesan: pesan }); }
     function W(field, pesan) { out.push({ level: 'peringatan', field: field, pesan: pesan }); }
-    if (!s(p.poktan)) E('poktan', 'Nama kelompok tani wajib diisi');
+    if (!s(p.poktan)) E('poktan', 'Nama kelompok wajib diisi');
+    if (s(p.jenis_kel) && !JENIS_KEL[s(p.jenis_kel)]) E('jenis_kel', 'Pilih jenis kelompok: Gabungan Kelompok Tani, Kelompok Tani, atau Koperasi Tebu');
     if (!KEG[p.keg]) E('keg', 'Pilih kegiatan: Perluasan Tanaman Tebu atau Bongkar Ratoon');
     if (!ctx.kabBy[p.kab]) E('kab', 'Kabupaten tidak terdaftar');
     if (!(num(p.luas) > 0)) E('luas', 'Luas target harus lebih dari 0 ha');
@@ -1107,7 +1124,7 @@ var HOK = (function () {
   // ------------------------------------------------------------------ salin data dari sistem HOK sebelumnya (40 HOK sekaligus)
   // lama: { setting:[{kunci,nilai}], provinsi:[...], kabupaten:[...], poktan:[...] } dibaca dari spreadsheet sistem lama.
   // Yang disalin: identitas, rekening, NPWP, luas dan SK CPCL. SPK, tanggal, pekerja, kehadiran dan berkas tidak disalin.
-  var SALIN_POKTAN = ['kab', 'keg', 'poktan', 'ketua', 'nik_ketua', 'jalan', 'desa', 'kec', 'bank', 'norek', 'namarek', 'npwp', 'npwp_an', 'luas', 'upah_khusus', 'no_cpcl', 'tgl_cpcl'];
+  var SALIN_POKTAN = ['kab', 'keg', 'jenis_kel', 'poktan', 'ketua', 'nik_ketua', 'jalan', 'desa', 'kec', 'bank', 'norek', 'namarek', 'npwp', 'npwp_an', 'luas', 'upah_khusus', 'no_cpcl', 'tgl_cpcl'];
   function salinDariLama(env, lama) {
     var hasil = { setting: 0, provinsi: 0, kabupaten: 0, poktan: 0, dilewati: 0 };
     var stLama = settingObj(lama.setting || []), salin = {};
@@ -1236,7 +1253,7 @@ var HOK = (function () {
     FIELD_TANGGAL: FIELD_TANGGAL, MIME_OK: MIME_OK,
     handle: handle, salinDariLama: salinDariLama, JENIS: JENIS, DAFTAR_JENIS: DAFTAR_JENIS, periode: periode, jenisW: jenisW, ukurKecepatan: ukurKecepatan, setupAwal: setupAwal, pindaiDokumen: pindaiDokumen, buatPengguna: buatPengguna,
     // dipakai juga di browser untuk validasi langsung
-    cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, r3: r3, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
+    cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, r3: r3, JENIS_KEL: JENIS_KEL, DAFTAR_JENIS_KEL: DAFTAR_JENIS_KEL, jenisKel: jenisKel, npwpAn: npwpAn, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
     namaFolder: namaFolder, validasiPoktan: validasiPoktan, validasiPekerja: validasiPekerja, sha256: sha256, hashKode: hashKode,
     settingObj: settingObj, by: by, tglPendek: tglPendek, rp: rp
   };

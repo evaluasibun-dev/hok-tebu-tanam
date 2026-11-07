@@ -33,7 +33,7 @@ var EKSPOR = (function () {
     var p = F.p, h = p.hit || {}, k = F.keg, kab = F.kab || {}, st = F.setting || {};
     var luasR = U.n(p.real_luas) ? U.ha(p.real_luas) : '……';
     return {
-      judul: k.judul, poktan_besar: t(String(p.poktan || '').toUpperCase()), keg_besar: String(k.nama).toUpperCase(), npwp: t(p.npwp), npwp_an: t(p.npwp_an), spk3: k.spk3, sptjm: k.sptjm, frasa: k.frasa, biaya: k.biaya, jenis: k.jenis,
+      judul: k.judul, poktan_besar: t(String(p.poktan || '').toUpperCase()), keg_besar: String(k.nama).toUpperCase(), npwp: t(p.npwp), npwp_an: t(HOK.npwpAn(p)), spk3: k.spk3, sptjm: k.sptjm, frasa: k.frasa, biaya: k.biaya, jenis: k.jenis,
       tahun: t(st.tahun, '2026'), no_dipa: t(st.no_dipa), tgl_dipa: U.tgl(st.tgl_dipa), kpa: t(st.kpa),
       no_spk: t(p.no_spk), kalimat_spk: U.kalimatHari(p.tgl_spk), tempat_spk: t(p.tempat_spk), jalan_spk: t(p.jalan_spk),
       tgl_spk: U.tgl(p.tgl_spk), spk_sd: U.tgl(p.spk_sd),
@@ -42,11 +42,11 @@ var EKSPOR = (function () {
       jabatan_ppk: 'Pejabat Pembuat Komitmen ' + t(kab.unit) + ', yang diangkat berdasarkan Keputusan ' + t(kab.penetap) + ' Nomor: ' + t(kab.sk_ppk) +
         ' dalam hal ini bertindak untuk dan atas nama ' + t(st.kpa) + ' DIPA Tahun ' + t(st.tahun) + ' Nomor: ' + t(st.no_dipa) +
         ' tanggal ' + U.tgl(st.tgl_dipa) + ', yang berkedudukan di ' + t(kab.kedudukan),
-      ketua: t(p.ketua), nik_ketua: t(p.nik_ketua), poktan: t(p.poktan), lembaga: FORM.lembaga(p.poktan), lembaga_kalimat: FORM.lembagaKalimat(p.poktan),
+      ketua: t(p.ketua), nik_ketua: t(p.nik_ketua), poktan: t(p.poktan), lembaga: FORM.lembaga(p.poktan, p.jenis_kel), lembaga_besar: FORM.lembaga(p.poktan, p.jenis_kel).toUpperCase(), lembaga_kalimat: FORM.lembagaKalimat(p.poktan, p.jenis_kel), jk_label: HOK.jenisKel(p).label, jk_besar: HOK.jenisKel(p).besar,
       desa: t(p.desa), kec: t(p.kec), kab: t(p.kab), prov: t(kab.provinsi),
       luas: U.n(p.luas) ? U.ha(p.luas) : '……', luas_real: luasR,
       rp_spk: U.rp(h.tBiaya), terbilang_spk: U.terbilang(h.tBiaya) + ' rupiah', hok_spk: U.angka(h.tHOK),
-      norek: t(p.norek), bank: t(p.bank, ''), namarek: t(p.namarek, FORM.lembaga(p.poktan)),
+      norek: t(p.norek), bank: t(p.bank, ''), namarek: t(p.namarek, FORM.lembaga(p.poktan, p.jenis_kel)),
       tgl_sptjm: U.tgl(p.tgl_sptjm), no_bast: t(p.no_bast), kalimat_bast: U.kalimatHari(p.tgl_bast), no_bap: t(p.no_bap), tgl_bap: U.tgl(p.tgl_bap),
       hok_real: U.angka(h.rHOK), rp_real: U.rp(h.rBiaya), terbilang_real: U.terbilang(h.rBiaya) + ' rupiah', terbilang_rp: U.terbilangRp(h.rBiaya),
       tgl_pelaksanaan: FORM.tglPelaksanaan(p, F.jenis), no_kw: t(p.no_kw), tgl_kw: U.tgl(p.tgl_kw),
@@ -141,6 +141,9 @@ var EKSPOR = (function () {
       return r.arrayBuffer();
     }).then(function (buf) { return JSZip.loadAsync(buf); }).then(function (zip) {
       return zip.file('word/document.xml').async('string').then(function (xml) {
+        // sebutan lembaga di teks templat mengikuti jenis kelompok
+        xml = xml.replace(/Kelompok Tani \{\{poktan\}\}/g, '{{lembaga}}').replace(/KELOMPOK TANI \{\{poktan_besar\}\}/g, '{{lembaga_besar}}');
+        if (nv.jk_label !== 'Kelompok Tani') xml = xml.replace(/KELOMPOK TANI/g, nv.jk_besar).replace(/Kelompok Tani/g, nv.jk_label);
         xml = xml.replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) { return xmlEsc(nv[k] === undefined ? TITIK : nv[k]); });
         if (!/^F10/.test(kode) && kode !== 'F12' && kode !== 'F14') return { zip: zip, xml: xml };
         if (kode === 'F14') {
@@ -265,14 +268,14 @@ var EKSPOR = (function () {
   function xF00(wb, F, nv) {
     var ws = lembar(wb, 'Daftar Periksa', [6, 70, 14, 40], false), h = F.p.hit || {}, d = F.dok || {}, p = F.p;
     var r = judulLembar(ws, ['DAFTAR DOKUMEN PELAKSANAAN PENYALURAN HOK', nv.judul, wilayah(F, nv), 'TAHUN ANGGARAN ' + nv.tahun], 4);
-    r = identitas(ws, r, [['Kelompok Tani', nv.poktan], ['Desa / Kecamatan', nv.desa + ' / ' + nv.kec]]) + 1;
+    r = identitas(ws, r, [[nv.jk_label, nv.poktan], ['Desa / Kecamatan', nv.desa + ' / ' + nv.kec]]) + 1;
     ['NO', 'DOKUMEN KEGIATAN', 'CHECK LIST', 'KETERANGAN'].forEach(function (x, i) { sel(ws, kol(i + 1) + r, x, { h: 'center', bold: true, border: true, fill: true }); });
     var docs = [
-      ['Surat Perjanjian Kerjasama dengan Kelompok Tani', p.no_spk && p.tgl_spk], ['SPTJM Kelompok Tani', p.tgl_sptjm], ['Rencana Usaha Kegiatan Kelompok (RUKK)', p.tgl_rukk],
-      ['Buku rekening atas nama Kelompok Tani', (d.rek || []).length >= 3], ['Foto KTP Ketua dan NPWP Kelompok Tani / Ketua', h.dok && h.dok.idn >= 2], ['Daftar hadir kerja', h.nPek > 0], ['Laporan Hasil Pekerjaan Ketua Kelompok ke PPK', p.tgl_lap],
+      ['Surat Perjanjian Kerjasama dengan ' + nv.jk_label, p.no_spk && p.tgl_spk], ['SPTJM ' + nv.jk_label, p.tgl_sptjm], ['Rencana Usaha Kegiatan Kelompok (RUKK)', p.tgl_rukk],
+      ['Buku rekening atas nama ' + nv.jk_label, (d.rek || []).length >= 3], ['Foto KTP Ketua dan NPWP ' + nv.jk_label + ' / Ketua', h.dok && h.dok.idn >= 2], ['Daftar hadir kerja', h.nPek > 0], ['Laporan Hasil Pekerjaan Ketua Kelompok ke PPK', p.tgl_lap],
       ['Berita Acara Pemeriksaan Hasil Pekerjaan oleh Tim Teknis', p.no_bap && p.tgl_bap], ['BAST Petani ke PPK', p.no_bast && p.tgl_bast], ['Bukti Pembayaran Petani', p.tgl_tt],
       ['Foto/Dokumentasi Kegiatan Geotagging (sebelum, proses, sesudah)', (d.geo || []).length >= HOK.SLOT.geo.length], ['Kwitansi Pembayaran ke Petani', p.tgl_kw],
-      ['Foto KTP Petani Pekerja', h.dok && h.nPek > 0 && h.dok.ktp >= h.nPek], ['List Data Kelompok Tani (alamat sesuai buku rekening)', p.norek && p.desa]
+      ['Foto KTP Petani Pekerja', h.dok && h.nPek > 0 && h.dok.ktp >= h.nPek], ['List Data ' + nv.jk_label + ' (alamat sesuai buku rekening)', p.norek && p.desa]
     ];
     docs.forEach(function (x, i) {
       r++;
@@ -283,7 +286,7 @@ var EKSPOR = (function () {
   function xF03(wb, F, nv) {
     var ws = lembar(wb, 'RUKK', [6, 30, 16, 16, 16, 20], true), p = F.p, h = p.hit || {};
     var r = judulLembar(ws, ['RENCANA USULAN KERJA KELOMPOK', F.keg.bantuan.toUpperCase(), nv.judul, wilayah(F, nv), 'TAHUN ANGGARAN ' + nv.tahun], 6);
-    r = identitas(ws, r, [['KELOMPOK TANI', nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['LUAS AREA', nv.luas + ' ha']]) + 1;
+    r = identitas(ws, r, [[nv.jk_besar, nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['LUAS AREA', nv.luas + ' ha']]) + 1;
     var a = r;
     gabung(ws, a, 1, a + 1, 1); gabung(ws, a, 2, a + 1, 2); gabung(ws, a, 3, a, 5); gabung(ws, a, 6, a + 1, 6);
     sel(ws, 'A' + a, 'NO', { h: 'center', bold: true, border: true }); sel(ws, 'B' + a, 'KEGIATAN', { h: 'center', bold: true, border: true });
@@ -329,7 +332,7 @@ var EKSPOR = (function () {
       var n = tgl.length, nKol = 3 + n + 1;
       var ws = lembar(wb, 'Hadir ' + namaJ + (nPer > 1 ? ' ' + (a + 1) : ''), [5, 26, 20].concat(tgl.map(function () { return 6.5; })).concat([10]), true);
       var r = judulLembar(ws, ['DAFTAR HADIR', nv.judul, wilayah(F, nv), 'TAHUN ANGGARAN ' + nv.tahun + (nPer > 1 ? ' · PERIODE ' + (a + 1) + '/' + nPer : '')], nKol);
-      r = identitas(ws, r, [['KELOMPOK TANI', nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['JENIS PEKERJAAN', F.keg.jenis], ['LUAS AREA', nv.luas + ' ha']]) + 1;
+      r = identitas(ws, r, [[nv.jk_besar, nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['JENIS PEKERJAAN', F.keg.jenis], ['LUAS AREA', nv.luas + ' ha']]) + 1;
       var h1 = r, h2 = r + 1, h3 = r + 2;
       [[1, 'NO'], [2, 'NAMA LENGKAP'], [3, 'NIK'], [nKol, 'TOTAL HARI']].forEach(function (x) { gabung(ws, h1, x[0], h3, x[0]); sel(ws, kol(x[0]) + h1, x[1], { h: 'center', bold: true, border: true, wrap: true, kecil: true }); });
       gabung(ws, h1, 4, h1, 3 + n); sel(ws, 'D' + h1, 'WAKTU PELAKSANAAN PEKERJAAN', { h: 'center', bold: true, border: true, kecil: true });
@@ -360,7 +363,7 @@ var EKSPOR = (function () {
     var p = F.p, h = p.hit || {}, rl = U.n(p.real_luas), tglP = FORM.tglPelaksanaan(p);
     var ws = lembar(wb, ba ? 'BA Pemeriksaan' : 'Laporan Pelaksanaan', [5, 24, 22, 11, 14, 16, 22, 9, 9, 10, 9, 16, 9, 16], true);
     var r = judulLembar(ws, (ba ? ['BERITA ACARA PEMERIKSAAN PEKERJAAN', 'Nomor : ' + nv.no_bap] : ['LAPORAN PELAKSANAAN KEGIATAN']).concat([nv.judul, wilayah(F, nv), 'TAHUN ANGGARAN ' + nv.tahun]), 14);
-    r = identitas(ws, r, [['KELOMPOK TANI', nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['LUAS AREA', nv.luas + ' ha']]) + 1;
+    r = identitas(ws, r, [[nv.jk_besar, nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['LUAS AREA', nv.luas + ' ha']]) + 1;
     var a = r, b = r + 1, c = r + 2, d = r + 3, nJ = HOK.DAFTAR_JENIS.length, j = d + nJ, dA = d + nJ - 1;
     var H = function (ref, v) { sel(ws, ref, v, { h: 'center', bold: true, border: true, fill: true, wrap: true, kecil: true }); };
     gabung(ws, a, 1, c, 1); H('A' + a, 'No'); gabung(ws, a, 2, c, 2); H('B' + a, 'Jenis Pekerjaan');
@@ -403,7 +406,7 @@ var EKSPOR = (function () {
     var p = F.p, h = p.hit || {}, upah = U.n(h.upah), pek = F.pekerja || [];
     var ws = lembar(wb, 'Tanda Terima ' + (F.jenis === 'tanam' ? 'Penanaman' : 'Pengolahan'), [6, 28, 22, 14, 16, 20, 18, 18], true);
     var r = judulLembar(ws, ['TANDA TERIMA PEMBAYARAN', nv.judul, wilayah(F, nv), 'TAHUN ANGGARAN ' + nv.tahun], 8);
-    r = identitas(ws, r, [['KELOMPOK TANI', nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['JENIS PEKERJAAN', F.keg.jenis], ['LUAS AREA', nv.luas + ' ha']]) + 1;
+    r = identitas(ws, r, [[nv.jk_besar, nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['JENIS PEKERJAAN', F.keg.jenis], ['LUAS AREA', nv.luas + ' ha']]) + 1;
     var H = function (ref, v) { sel(ws, ref, v, { h: 'center', bold: true, border: true, wrap: true, kecil: true }); };
     ['NO', 'NAMA LENGKAP', 'NIK', 'TOTAL HADIR (HARI)', 'UPAH KERJA PERHARI (Rp)', 'JUMLAH UPAH DITERIMA (Rp)'].forEach(function (x, i) { H(kol(i + 1) + r, x); });
     gabung(ws, r, 7, r, 8); H('G' + r, 'TANDA TANGAN'); ws.getCell('H' + r).border = BINGKAI; ws.getRow(r).height = 32;
@@ -441,14 +444,15 @@ var EKSPOR = (function () {
   // F13 alamat poktan per kabupaten
   function excelAlamat(kab, keg, daftar) {
     return muat('ExcelJS').then(function (ExcelJS) {
-      var wb = new ExcelJS.Workbook(), ws = lembar(wb, 'List Data Kelompok Tani', [5, 28, 22, 20, 22, 16, 16, 14, 16, 20, 26, 26], true);
-      var r = judulLembar(ws, ['LIST DATA KELOMPOK TANI PENERIMA BANTUAN'].concat(keg ? [HOK.KEG[keg].judul] : []).concat(['KABUPATEN ' + kab.kab.toUpperCase() + ' PROVINSI ' + String(kab.provinsi || '').toUpperCase()]), 12);
-      ['NO', 'NAMA KELOMPOK TANI', 'KETUA KELOMPOK TANI', 'NIK', 'JALAN', 'DESA', 'KECAMATAN', 'KABUPATEN', 'PROVINSI', 'NO REKENING', 'NAMA REKENING', 'NOMOR NPWP (KT/KETUA KT)']
+      var J = FORM.sebutanDaftar(daftar);
+      var wb = new ExcelJS.Workbook(), ws = lembar(wb, 'List Data Kelompok', [5, 28, 22, 20, 22, 16, 16, 14, 16, 20, 26, 26], true);
+      var r = judulLembar(ws, ['LIST DATA ' + J.besar + ' PENERIMA BANTUAN'].concat(keg ? [HOK.KEG[keg].judul] : []).concat(['KABUPATEN ' + kab.kab.toUpperCase() + ' PROVINSI ' + String(kab.provinsi || '').toUpperCase()]), 12);
+      ['NO', 'NAMA ' + J.besar, 'KETUA ' + J.besar, 'NIK', 'JALAN', 'DESA', 'KECAMATAN', 'KABUPATEN', 'PROVINSI', 'NO REKENING', 'NAMA REKENING', 'NOMOR NPWP (' + J.npwp + ')']
         .forEach(function (x, i) { sel(ws, kol(i + 1) + r, x, { h: 'center', bold: true, border: true, wrap: true, kecil: true, fill: true }); });
       ws.getRow(r).height = 32;
       daftar.forEach(function (p, i) {
         r++;
-        [i + 1, p.poktan, p.ketua, String(p.nik_ketua || ''), p.jalan, p.desa, p.kec, p.kab, kab.provinsi, String(p.norek || ''), p.namarek, String(p.npwp || '') + (p.npwp && p.npwp_an ? ' (' + p.npwp_an + ')' : '')]
+        [i + 1, J.campur ? FORM.lembaga(p.poktan, p.jenis_kel) : p.poktan, p.ketua, String(p.nik_ketua || ''), p.jalan, p.desa, p.kec, p.kab, kab.provinsi, String(p.norek || ''), p.namarek, String(p.npwp || '') + (p.npwp && p.npwp_an ? ' (' + HOK.npwpAn(p) + ')' : '')]
           .forEach(function (v, j) { sel(ws, kol(j + 1) + r, v === undefined ? '' : v, { border: true, kecil: true, wrap: true, h: j === 0 ? 'center' : 'left', fmt: [3, 9, 11].indexOf(j) >= 0 ? '@' : undefined }); });
       });
       return wb.xlsx.writeBuffer();

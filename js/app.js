@@ -331,10 +331,10 @@
 
   // ------------------------------------------------------------------ form data poktan
   var FIELD = [
-    ['A. Identitas kelompok tani', [
-      ['kab', 'Kabupaten', 'kab'], ['keg', 'Kegiatan', 'keg'], ['poktan', 'Nama kelompok tani'], ['ketua', 'Nama ketua'],
+    ['A. Identitas kelompok', [
+      ['kab', 'Kabupaten', 'kab'], ['keg', 'Kegiatan', 'keg'], ['jenis_kel', 'Jenis kelompok', 'jenis_kel', 'menentukan sebutan lembaga di semua dokumen'], ['poktan', 'Nama kelompok', '', 'tanpa sebutan jenis, mis. "Sido Makmur"'], ['ketua', 'Nama ketua'],
       ['nik_ketua', 'NIK ketua', 'nik', '16 digit sesuai KTP'], ['jalan', 'Jalan / alamat'], ['desa', 'Desa', '', 'tanpa kata "Desa"'], ['kec', 'Kecamatan', '', 'tanpa kata "Kec."'],
-      ['bank', 'Nama bank'], ['norek', 'Nomor rekening poktan'], ['namarek', 'Nama di rekening'], ['npwp', 'NPWP (KT / ketua KT)', '', 'nomor sesuai kartu NPWP'], ['npwp_an', 'NPWP atas nama', 'npwp_an', 'foto NPWP diunggah di tab Dokumen & foto']]],
+      ['bank', 'Nama bank'], ['norek', 'Nomor rekening kelompok'], ['namarek', 'Nama di rekening'], ['npwp', 'NPWP (kelompok / ketua)', '', 'nomor sesuai kartu NPWP'], ['npwp_an', 'NPWP atas nama', 'npwp_an', 'foto NPWP diunggah di tab Dokumen & foto']]],
     ['B. Rencana dan satuan HOK', [
       ['luas', 'Luas target (ha)', 'angka', 'sesuai SK CPCL'],
       ['upah_khusus', 'Upah/HOK khusus (opsional)', 'angka', 'kosongkan bila mengikuti standar provinsi'], ['_tarif', 'Berlaku', 'info']]],
@@ -368,6 +368,8 @@
         inp = '<select id="fld-kab" name="kab"' + (bisaPilih ? '' : ' disabled') + '>' + S.boot.kabupaten.map(function (x) { return '<option' + (x.kab === v ? ' selected' : '') + '>' + e(x.kab) + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'npwp_an') {
         inp = '<select id="fld-npwp_an" name="npwp_an"' + dis + '><option value="">– pilih –</option>' + HOK.NPWP_AN.map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
+      } else if (tipe === 'jenis_kel') {
+        inp = '<select id="fld-jenis_kel" name="jenis_kel"' + dis + '>' + HOK.DAFTAR_JENIS_KEL.map(function (x) { return '<option' + (x === (v || 'Kelompok Tani') ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'keg') {
         inp = '<select id="fld-keg" name="keg"' + dis + '>' + Object.keys(HOK.KEG).map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else {
