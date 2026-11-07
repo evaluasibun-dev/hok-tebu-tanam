@@ -369,7 +369,7 @@
       } else if (tipe === 'npwp_an') {
         inp = '<select id="fld-npwp_an" name="npwp_an"' + dis + '><option value="">– pilih –</option>' + HOK.NPWP_AN.map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'jenis_kel') {
-        inp = '<select id="fld-jenis_kel" name="jenis_kel"' + dis + '>' + HOK.DAFTAR_JENIS_KEL.map(function (x) { return '<option' + (x === (v || 'Kelompok Tani') ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
+        inp = '<select id="fld-jenis_kel" name="jenis_kel"' + dis + '>' + HOK.DAFTAR_JENIS_KEL.map(function (x) { return '<option' + (x === HOK.jenisKel({ jenis_kel: v }).nama ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'keg') {
         inp = '<select id="fld-keg" name="keg"' + dis + '>' + Object.keys(HOK.KEG).map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else {
@@ -767,7 +767,7 @@
         var semua = jenis === 'semua';
         return ((/^F10/.test(jenis) || semua) && f.grup === 'geo') ||
           ((jenis === 'F12' || semua) && (f.grup === 'idn' || (f.grup === 'rek' && nm === 'depan'))) ||
-          ((jenis === 'F14' || semua) && (f.grup === 'ktp' || (f.grup === 'idn' && nm === 'ktp_ketua')));
+          ((/^F14/.test(jenis) || semua) && (f.grup === 'ktp' || (f.grup === 'idn' && nm === 'ktp_ketua')));
       }).filter(function (f) { return !F.foto[f.nama.replace(/\.[a-z]+$/i, '')]; });
       if (pilih.length) U.toast('Mengambil ' + pilih.length + ' foto dari Drive…');
       // ambil paling banyak 4 berkas sekaligus agar server tidak kebanjiran permintaan

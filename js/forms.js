@@ -10,19 +10,19 @@ var FORM = (function () {
   function tempatTgl(F, d) { return e(F.p.kab) + ', ' + U.tgl(d); }
   function luasTeks(v) { return U.n(v) ? U.ha(v) + ' ha' : '…… ha'; }
 
-  // "Kelompok Tani Gandul Mulyo" / "Gabungan Kelompok Tani ..." / "Koperasi Tebu ..." sesuai jenis kelompok;
+  // "Kelompok Tani Gandul Mulyo" / "Gabungan Kelompok Tani ..." / "Koperasi Tani ..." sesuai jenis kelompok;
   // nama yang sudah diawali sebutan lembaga dipakai apa adanya
   function lembaga(nama, jenis) {
     var n = String(nama || '').trim(), j = HOK.jenisKel({ jenis_kel: jenis });
     if (!n) return j.label + ' ……………………';
     n = n.replace(/^(kt|poktan|gapoktan)\.?\s+/i, '');                     // singkatan dibuang, diganti sebutan sesuai jenis
-    if (j.nama === 'Koperasi Tebu' && /^(koperasi|kptr|kud|kop\.)/i.test(n)) return n;
+    if (j.nama === 'Koperasi Tani' && /^(koperasi|kptr|kud|kop\.)/i.test(n)) return n;
     if (j.nama === 'Gabungan Kelompok Tani' && /^gabungan\s+kelompok\s+tani\b/i.test(n)) return n;
     if (j.nama === 'Kelompok Tani' && /^kelompok\s+tani\b/i.test(n)) return n;
     n = n.replace(/^(gabungan\s+kelompok\s+tani|kelompok\s+tani)\s+/i, '');   // sebutan lain yang tidak cocok dengan jenis
     return j.label + ' ' + n;
   }
-  // bentuk di tengah kalimat: "kelompok tani Gandul Mulyo" / "koperasi tebu Manis Jaya"
+  // bentuk di tengah kalimat: "kelompok tani Gandul Mulyo" / "koperasi tani Manis Jaya"
   function lembagaKalimat(nama, jenis) { var l = lembaga(nama, jenis), j = HOK.jenisKel({ jenis_kel: jenis }); return l.indexOf(j.label + ' ') === 0 ? j.kalimat + l.slice(j.label.length) : l; }
   function JK(F) { return HOK.jenisKel(F.p || F); }
   // tanggal pelaksanaan = rentang hadir sebenarnya (sama untuk target dan realisasi)
@@ -303,8 +303,9 @@ var FORM = (function () {
   }
   function F14(F) {
     var p = F.p, daftar = fotoKtpPekerja(F), out = '', PER = 8;
-    var kepala = judulBlok(['DOKUMENTASI', 'KTP PENERIMA PETANI PEKERJA KEGIATAN', e(String(F.keg.nama).toUpperCase()) + ' TAHUN ANGGARAN ' + e(F.setting.tahun || '2026'), e(lembaga(p.poktan, p.jenis_kel).toUpperCase()) + ' LUAS AREA ' + luasTeks(p.luas).toUpperCase()]);
-    if (!daftar.length) return '<div class="hal">' + kepala + '<p>Belum ada pekerja di daftar hadir.</p></div>';
+    // F14a/F14b: judul menyebut tahap pekerjaan (pengolahan lahan / penanaman)
+    var kepala = judulBlok(['DOKUMENTASI', 'KTP PENERIMA PETANI PEKERJA KEGIATAN' + (F.jenis ? ' ' + HOK.JENIS[F.jenis].judul : ''), e(String(F.keg.nama).toUpperCase()) + ' TAHUN ANGGARAN ' + e(F.setting.tahun || '2026'), e(lembaga(p.poktan, p.jenis_kel).toUpperCase())]);
+    if (!daftar.length) return '<div class="hal">' + kepala + '<p>Belum ada pekerja di daftar hadir' + (F.jenis ? ' ' + HOK.JENIS[F.jenis].label.toLowerCase() : '') + '.</p></div>';
     for (var i = 0; i < daftar.length; i += PER) {
       out += '<div class="hal">' + kepala + '<div class="ktp-grid">' + daftar.slice(i, i + PER).map(function (x) {
         var g = x.f && x.f.pdf ? 'KTP berupa PDF, lampirkan terpisah' : x.f && x.f.url ? '<img src="' + x.f.url + '" alt="">' : 'FOTO KTP PEKERJA<br>(belum diunggah)';
@@ -345,7 +346,8 @@ var FORM = (function () {
     ['F10b', 'Dokumentasi foto geotag penanaman', function (F) { return F10(untukJenis(F, 'tanam')); }],
     ['F11', 'Kwitansi', F11],
     ['F12', 'Foto KTP ketua, buku rekening & NPWP', F12],
-    ['F14', 'Dokumentasi KTP petani pekerja (8 per halaman)', F14]
+    ['F14a', 'Dokumentasi KTP petani pekerja pengolahan lahan (8 per halaman)', function (F) { return F14(untukJenis(F, 'olah')); }],
+    ['F14b', 'Dokumentasi KTP petani pekerja penanaman (8 per halaman)', function (F) { return F14(untukJenis(F, 'tanam')); }]
   ];
 
   function cetakHTML(html, judul) {

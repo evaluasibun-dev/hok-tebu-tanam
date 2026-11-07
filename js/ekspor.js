@@ -60,7 +60,7 @@ var EKSPOR = (function () {
   // ------------------------------------------------------------ WORD (template resmi)
   var WORD = {
     F01: ['F01_SPK.docx', 'SPK'], F02: ['F02_SPTJM.docx', 'SPTJM'], F08: ['F08_BAST.docx', 'BAST'],
-    F10a: ['F10_Dokumentasi.docx', 'Dokumentasi_Pengolahan'], F10b: ['F10_Dokumentasi.docx', 'Dokumentasi_Penanaman'], F11: ['F11_Kwitansi.docx', 'Kwitansi'], F12: ['F12_KTP_Rekening_NPWP.docx', 'KTP_Rekening_NPWP'], F14: ['F14_KTP_Pekerja.docx', 'KTP_Pekerja']
+    F10a: ['F10_Dokumentasi.docx', 'Dokumentasi_Pengolahan'], F10b: ['F10_Dokumentasi.docx', 'Dokumentasi_Penanaman'], F11: ['F11_Kwitansi.docx', 'Kwitansi'], F12: ['F12_KTP_Rekening_NPWP.docx', 'KTP_Rekening_NPWP'], F14a: ['F14_KTP_Pekerja.docx', 'KTP_Pekerja_Pengolahan'], F14b: ['F14_KTP_Pekerja.docx', 'KTP_Pekerja_Penanaman']
   };
   function xmlEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function ukuranGambar(url) {
@@ -132,7 +132,7 @@ var EKSPOR = (function () {
   }
 
   // F10a/F10b: dokumentasi per jenis pekerjaan (pengolahan lahan / penanaman) dari template yang sama
-  function formUntuk(kode, F) { return kode === 'F10a' || kode === 'F05a' || kode === 'F09a' ? FORM.untukJenis(F, 'olah') : kode === 'F10b' || kode === 'F05b' || kode === 'F09b' ? FORM.untukJenis(F, 'tanam') : F; }
+  function formUntuk(kode, F) { return /^F(05|09|10|14)a$/.test(kode) ? FORM.untukJenis(F, 'olah') : /^F(05|09|10|14)b$/.test(kode) ? FORM.untukJenis(F, 'tanam') : F; }
   function isiWord(kode, F, JSZip) {
     F = formUntuk(kode, F);
     var nv = nilai(F);
@@ -141,12 +141,14 @@ var EKSPOR = (function () {
       return r.arrayBuffer();
     }).then(function (buf) { return JSZip.loadAsync(buf); }).then(function (zip) {
       return zip.file('word/document.xml').async('string').then(function (xml) {
+        // F14a/F14b: judul menyebut tahap, baris lembaga tanpa luas area
+        if (/^F14/.test(kode)) xml = xml.replace('KTP PENERIMA PETANI PEKERJA KEGIATAN', 'KTP PENERIMA PETANI PEKERJA KEGIATAN ' + HOK.JENIS[F.jenis].judul).replace(/ LUAS AREA \{\{luas\}\} HA/, '');
         // sebutan lembaga di teks templat mengikuti jenis kelompok
         xml = xml.replace(/Kelompok Tani \{\{poktan\}\}/g, '{{lembaga}}').replace(/KELOMPOK TANI \{\{poktan_besar\}\}/g, '{{lembaga_besar}}');
         if (nv.jk_label !== 'Kelompok Tani') xml = xml.replace(/KELOMPOK TANI/g, nv.jk_besar).replace(/Kelompok Tani/g, nv.jk_label);
         xml = xml.replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) { return xmlEsc(nv[k] === undefined ? TITIK : nv[k]); });
-        if (!/^F10/.test(kode) && kode !== 'F12' && kode !== 'F14') return { zip: zip, xml: xml };
-        if (kode === 'F14') {
+        if (!/^F10/.test(kode) && kode !== 'F12' && !/^F14/.test(kode)) return { zip: zip, xml: xml };
+        if (/^F14/.test(kode)) {
           var nK = 0, relK = '', daftarK = FORM.fotoKtpPekerja(F);
           var a0 = xml.indexOf('<w:body>') + 8, iPen = xml.indexOf('{{KTP_HALAMAN}}'), aPen = Math.max(xml.lastIndexOf('<w:p>', iPen), xml.lastIndexOf('<w:p ', iPen));
           var kepala = xml.slice(a0, aPen);

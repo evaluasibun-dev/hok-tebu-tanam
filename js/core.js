@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.1.0';
+  var VERSI = '2.1.2';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -59,10 +59,11 @@ var HOK = (function () {
   var JENIS_KEL = {
     'Gabungan Kelompok Tani': { nama: 'Gabungan Kelompok Tani', label: 'Gabungan Kelompok Tani', besar: 'GABUNGAN KELOMPOK TANI', singkat: 'Gapoktan', kalimat: 'gabungan kelompok tani' },
     'Kelompok Tani': { nama: 'Kelompok Tani', label: 'Kelompok Tani', besar: 'KELOMPOK TANI', singkat: 'Poktan', kalimat: 'kelompok tani' },
-    'Koperasi Tebu': { nama: 'Koperasi Tebu', label: 'Koperasi Tebu', besar: 'KOPERASI TEBU', singkat: 'Koperasi', kalimat: 'koperasi tebu' }
+    'Koperasi Tani': { nama: 'Koperasi Tani', label: 'Koperasi Tani', besar: 'KOPERASI TANI', singkat: 'Koperasi', kalimat: 'koperasi tani' }
   };
-  var DAFTAR_JENIS_KEL = ['Gabungan Kelompok Tani', 'Kelompok Tani', 'Koperasi Tebu'];
-  function jenisKel(p) { return JENIS_KEL[s(p && p.jenis_kel)] || JENIS_KEL['Kelompok Tani']; }
+  var DAFTAR_JENIS_KEL = ['Gabungan Kelompok Tani', 'Kelompok Tani', 'Koperasi Tani'];
+  var ALIAS_JENIS_KEL = { 'Koperasi Tebu': 'Koperasi Tani' }; // nama lama tetap dikenali
+  function jenisKel(p) { var v = s(p && p.jenis_kel); return JENIS_KEL[ALIAS_JENIS_KEL[v] || v] || JENIS_KEL['Kelompok Tani']; }
   // NPWP atas nama (nilai tersimpan tetap) ditampilkan sesuai jenis kelompok
   function npwpAn(p) {
     var a = s(p && p.npwp_an), j = jenisKel(p);
@@ -267,7 +268,7 @@ var HOK = (function () {
     function E(field, pesan) { out.push({ level: 'error', field: field, pesan: pesan }); }
     function W(field, pesan) { out.push({ level: 'peringatan', field: field, pesan: pesan }); }
     if (!s(p.poktan)) E('poktan', 'Nama kelompok wajib diisi');
-    if (s(p.jenis_kel) && !JENIS_KEL[s(p.jenis_kel)]) E('jenis_kel', 'Pilih jenis kelompok: Gabungan Kelompok Tani, Kelompok Tani, atau Koperasi Tebu');
+    if (s(p.jenis_kel) && !JENIS_KEL[s(p.jenis_kel)] && !ALIAS_JENIS_KEL[s(p.jenis_kel)]) E('jenis_kel', 'Pilih jenis kelompok: Gabungan Kelompok Tani, Kelompok Tani, atau Koperasi Tani');
     if (!KEG[p.keg]) E('keg', 'Pilih kegiatan: Perluasan Tanaman Tebu atau Bongkar Ratoon');
     if (!ctx.kabBy[p.kab]) E('kab', 'Kabupaten tidak terdaftar');
     if (!(num(p.luas) > 0)) E('luas', 'Luas target harus lebih dari 0 ha');
