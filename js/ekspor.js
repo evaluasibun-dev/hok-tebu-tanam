@@ -216,6 +216,7 @@ var EKSPOR = (function () {
   var BINGKAI = { top: TIPIS, left: TIPIS, bottom: TIPIS, right: TIPIS };
   var ABU = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } };
   var RP = '#,##0';
+  function FH(v) { var k = 0; while (k < 3 && Math.abs(v * Math.pow(10, k) - Math.round(v * Math.pow(10, k))) > 1e-6) k++; return k ? '#,##0.' + '000'.slice(0, k) : '#,##0'; } // format HOK: sampai 3 desimal
 
   function lembar(wb, nama, lebar, lanskap) {
     var ws = wb.addWorksheet(nama.slice(0, 31), {
@@ -233,6 +234,9 @@ var EKSPOR = (function () {
     if (o.border) c.border = BINGKAI;
     if (o.fill) c.fill = ABU;
     if (o.fmt) c.numFmt = o.fmt;
+    // rupiah pecahan (HOK desimal × upah) ditampilkan dengan desimalnya, tidak dibulatkan
+    var nv = v && typeof v === 'object' ? v.result : v;
+    if (o.fmt === RP && typeof nv === 'number' && Math.abs(nv - Math.round(nv)) > 1e-9) c.numFmt = '#,##0.###';
     return c;
   }
   function gabung(ws, r1, c1, r2, c2) { ws.mergeCells(r1, c1, r2, c2); }
@@ -293,9 +297,9 @@ var EKSPOR = (function () {
     HOK.DAFTAR_JENIS.forEach(function (jn, i) {
       var rr = b2 + i;
       sel(ws, 'A' + rr, '', { border: true }); sel(ws, 'B' + rr, '- ' + HOK.JENIS[jn].label, { border: true });
-      sel(ws, 'C' + rr, U.n(p.luas), { h: 'center', border: true, fmt: '0.00#' }); sel(ws, 'D' + rr, U.n((h.hok || {})[jn]), { h: 'center', border: true });
+      sel(ws, 'C' + rr, U.n(p.luas), { h: 'center', border: true, fmt: '0.0##' }); sel(ws, 'D' + rr, U.n((h.hok || {})[jn]), { h: 'center', border: true });
       sel(ws, 'E' + rr, U.n(h.upah), { h: 'right', border: true, fmt: RP });
-      sel(ws, 'F' + rr, { formula: 'ROUND(C' + rr + '*D' + rr + ',0)*E' + rr, result: h.per[jn].tHOK * h.upah }, { h: 'right', border: true, fmt: RP });
+      sel(ws, 'F' + rr, { formula: 'ROUND(C' + rr + '*D' + rr + ',3)*E' + rr, result: HOK.r3(h.per[jn].tHOK * h.upah) }, { h: 'right', border: true, fmt: RP });
     });
     b2 = bj - 1;
     gabung(ws, bj, 1, bj, 5); sel(ws, 'A' + bj, 'JUMLAH', { h: 'center', bold: true, border: true });
@@ -369,12 +373,12 @@ var EKSPOR = (function () {
     for (var k = 1; k <= 14; k++) [a, b, c].forEach(function (rr) { ws.getCell(kol(k) + rr).border = BINGKAI; ws.getCell(kol(k) + rr).fill = ABU; });
     var o = { border: true, kecil: true, h: 'center', wrap: true };
     HOK.DAFTAR_JENIS.forEach(function (jn, i) {
-      var rr = d + i, pj = h.per[jn], tB = pj.tHOK * h.upah, rB = pj.rHOK * h.upah, prJ = HOK.periode(p, jn), tglJ = U.rentang(pj.awal || prJ.awal, pj.akhir || prJ.akhir);
+      var rr = d + i, pj = h.per[jn], tB = HOK.r3(pj.tHOK * h.upah), rB = pj.rHOK * h.upah, prJ = HOK.periode(p, jn), tglJ = U.rentang(pj.awal || prJ.awal, pj.akhir || prJ.akhir);
       var sesuai = pj.rHOK && pj.rHOK <= pj.tHOK && rl <= U.n(p.luas) ? 'SESUAI' : (pj.rHOK ? 'TIDAK SESUAI' : '');
       sel(ws, 'A' + rr, i + 1, o); sel(ws, 'B' + rr, HOK.JENIS[jn].label, Object.assign({}, o, { h: 'left' })); sel(ws, 'C' + rr, tglJ, o);
-      sel(ws, 'D' + rr, U.n(p.luas), Object.assign({}, o, { fmt: '0.00#' })); sel(ws, 'E' + rr, pj.tHOK, Object.assign({}, o, { fmt: RP }));
+      sel(ws, 'D' + rr, U.n(p.luas), Object.assign({}, o, { fmt: '0.0##' })); sel(ws, 'E' + rr, pj.tHOK, Object.assign({}, o, { fmt: FH(pj.tHOK) }));
       sel(ws, 'F' + rr, tB, Object.assign({}, o, { h: 'right', fmt: RP })); sel(ws, 'G' + rr, tglJ, o);
-      sel(ws, 'H' + rr, rl || null, Object.assign({}, o, { fmt: '0.00#' }));
+      sel(ws, 'H' + rr, rl || null, Object.assign({}, o, { fmt: '0.0##' }));
       sel(ws, 'I' + rr, { formula: 'IF(D' + rr + '=0,"",H' + rr + '/D' + rr + ')', result: U.n(p.luas) ? rl / U.n(p.luas) : '' }, Object.assign({}, o, { fmt: '0%' }));
       sel(ws, 'J' + rr, pj.rHOK, Object.assign({}, o, { fmt: RP }));
       sel(ws, 'K' + rr, { formula: 'IF(E' + rr + '=0,"",J' + rr + '/E' + rr + ')', result: pj.tHOK ? pj.rHOK / pj.tHOK : '' }, Object.assign({}, o, { fmt: '0%' }));
@@ -385,7 +389,7 @@ var EKSPOR = (function () {
     });
     gabung(ws, j, 1, j, 4); sel(ws, 'A' + j, 'JUMLAH', { h: 'center', bold: true, border: true, kecil: true });
     for (var z = 2; z <= 14; z++) ws.getCell(kol(z) + j).border = BINGKAI;
-    sel(ws, 'E' + j, { formula: 'SUM(E' + d + ':E' + dA + ')', result: h.tHOK }, { h: 'center', bold: true, border: true, kecil: true, fmt: RP });
+    sel(ws, 'E' + j, { formula: 'SUM(E' + d + ':E' + dA + ')', result: h.tHOK }, { h: 'center', bold: true, border: true, kecil: true, fmt: FH(h.tHOK) });
     sel(ws, 'F' + j, { formula: 'SUM(F' + d + ':F' + dA + ')', result: h.tBiaya }, { h: 'right', bold: true, border: true, kecil: true, fmt: RP });
     sel(ws, 'J' + j, { formula: 'SUM(J' + d + ':J' + dA + ')', result: h.rHOK }, { h: 'center', bold: true, border: true, kecil: true, fmt: RP });
     sel(ws, 'L' + j, { formula: 'SUM(L' + d + ':L' + dA + ')', result: h.rBiaya }, { h: 'right', bold: true, border: true, kecil: true, fmt: RP });

@@ -77,9 +77,9 @@ var DEMO = (function () {
       if (tahap >= 5) Object.assign(p, { no_kw: (i + 1) + '/KW/2026', tgl_kw: U.tambahHari(selesai, 6), tgl_tt: U.tambahHari(selesai, 8) });
       if (tahap >= 2) {
         var tO = d[6] * 15, tT = d[6] * 25, full = tahap >= 3;
-        var olah = isiJenis(id, d, 'olah', mulai, durO, full ? tO : Math.round(tO * (0.7 + r() * 0.3)), []);
+        var olah = isiJenis(id, d, 'olah', mulai, durO, full ? Math.floor(tO) : Math.round(tO * (0.7 + r() * 0.3)), []);
         // sebagian pekerja pengolahan ikut penanaman di tanggal setelah hari kerja pengolahannya
-        isiJenis(id, d, 'tanam', mulaiT, durT, full ? tT : Math.round(tT * (0.2 + r() * 0.4)), olah.slice(0, 2));
+        isiJenis(id, d, 'tanam', mulaiT, durT, full ? Math.floor(tT) : Math.round(tT * (0.2 + r() * 0.4)), olah.slice(0, 2));
       }
       return p;
     });

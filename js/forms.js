@@ -136,7 +136,7 @@ var FORM = (function () {
       '<table class="bingkai"><tr><th rowspan="2" style="width:6%">NO</th><th rowspan="2">KEGIATAN</th><th colspan="3">' + e(F.keg.bantuan) + '</th><th rowspan="2" style="width:18%">JUMLAH (Rp)</th></tr>' +
       '<tr><th>Luas Lahan (ha)</th><th>Jumlah HOK/ha</th><th>Satuan (Rp/HOK)</th></tr>' +
       '<tr><td class="c">1</td><td>Tenaga Kerja</td><td></td><td></td><td></td><td></td></tr>' +
-      HOK.DAFTAR_JENIS.map(function (j) { return '<tr><td></td><td>- ' + e(HOK.JENIS[j].label) + '</td><td class="c">' + U.ha(p.luas) + '</td><td class="c">' + U.angka(h.hok[j]) + '</td><td class="r">' + U.angka(h.upah) + '</td><td class="r">' + U.angka(h.per[j].tHOK * h.upah) + '</td></tr>'; }).join('') +
+      HOK.DAFTAR_JENIS.map(function (j) { return '<tr><td></td><td>- ' + e(HOK.JENIS[j].label) + '</td><td class="c">' + U.ha(p.luas) + '</td><td class="c">' + U.angka(h.hok[j]) + '</td><td class="r">' + U.angka(h.upah) + '</td><td class="r">' + U.angka(HOK.r3(h.per[j].tHOK * h.upah)) + '</td></tr>'; }).join('') +
       '<tr><td colspan="5" class="c tebal">JUMLAH</td><td class="r tebal">' + U.angka(h.tBiaya) + '</td></tr></table>' +
       '<p class="kecil miring">*Keterangan: Biaya lain yang timbul untuk kegiatan ' + e(F.keg.swadaya) + ' dibiayai secara swadaya oleh petani.</p><div class="jarak"></div>' +
       '<table class="ttd"><tr><td></td><td>' + tempatTgl(F, p.tgl_rukk) + '<br>Ketua ' + e(lembaga(p.poktan)) + '<div class="ruang-ttd">TTD dan stempel</div><span class="tebal garis-bawah">' + isi(p.ketua) + '</span></td></tr></table></div>';
@@ -182,7 +182,7 @@ var FORM = (function () {
     var p = F.p, h = p.hit, rl = U.n(p.real_luas);
     var pc = function (a, b) { return b ? U.persen(a, b) : '–'; };
     var baris = HOK.DAFTAR_JENIS.map(function (j, i) {
-      var pj = h.per[j], tB = pj.tHOK * h.upah, rB = pj.rHOK * h.upah, tg = U.rentang(pj.awal || HOK.periode(p, j).awal, pj.akhir || HOK.periode(p, j).akhir);
+      var pj = h.per[j], tB = HOK.r3(pj.tHOK * h.upah), rB = pj.rHOK * h.upah, tg = U.rentang(pj.awal || HOK.periode(p, j).awal, pj.akhir || HOK.periode(p, j).akhir);
       return '<tr><td class="c">' + (i + 1) + '</td><td>' + e(HOK.JENIS[j].label) + '</td><td class="c">' + tg + '</td><td class="c">' + U.ha(p.luas) + '</td><td class="c">' + U.angka(pj.tHOK) + '</td><td class="r">' + U.angka(tB) + '</td>' +
         '<td class="c">' + tg + '</td><td class="c">' + (rl ? U.ha(rl) : '–') + '</td><td class="c">' + pc(rl, U.n(p.luas)) + '</td><td class="c">' + U.angka(pj.rHOK) + '</td><td class="c">' + pc(pj.rHOK, pj.tHOK) + '</td>' +
         '<td class="r">' + U.angka(rB) + '</td><td class="c">' + pc(rB, tB) + '</td><td class="c tebal">' + (nilaiAkhir ? nilaiAkhir(pj) : '') + '</td></tr>';

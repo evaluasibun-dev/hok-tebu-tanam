@@ -6,9 +6,9 @@ var U = (function () {
 
   function esc(v) { return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function n(v) { return HOK.num(v); }
-  function angka(v, d) { return new Intl.NumberFormat('id-ID', { maximumFractionDigits: d === undefined ? 0 : d }).format(Number(v) || 0); }
-  function rp(v) { return 'Rp' + angka(Math.round(Number(v) || 0)); }
-  function ha(v) { return angka(n(v), 2); }
+  function angka(v, d) { return new Intl.NumberFormat('id-ID', { maximumFractionDigits: d === undefined ? 3 : d }).format(Number(v) || 0); }
+  function rp(v) { return 'Rp' + angka(Math.round((Number(v) || 0) * 1000) / 1000, 3); }
+  function ha(v) { return angka(n(v), 3); }
   function persen(a, b) { return b ? new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(a / b * 100) + '%' : '–'; }
   function singkat(v) {
     v = Number(v) || 0;
@@ -42,7 +42,12 @@ var U = (function () {
     if (x < 1e12) return tb(x / 1e9) + ' miliar' + (x % 1e9 ? ' ' + tb(x % 1e9) : '');
     return tb(x / 1e12) + ' triliun' + (x % 1e12 ? ' ' + tb(x % 1e12) : '');
   }
-  function terbilang(x) { x = Math.round(Number(x) || 0); return x === 0 ? 'nol' : tb(x).replace(/\s+/g, ' ').trim(); }
+  function terbilang(x) {
+    x = Math.round((Number(x) || 0) * 1000) / 1000;
+    var bulat = Math.floor(x), kom = String(x).split('.')[1] || '', SATU = ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'];
+    var t = bulat === 0 ? 'nol' : tb(bulat).replace(/\s+/g, ' ').trim();
+    return kom ? t + ' koma ' + kom.split('').map(function (c) { return SATU[+c]; }).join(' ') : t;
+  }
   function terbilangRp(x) { var t = terbilang(x) + ' rupiah'; return t.charAt(0).toUpperCase() + t.slice(1); }
   function kalimatHari(d) {
     if (!HOK.isISO(d)) return 'Pada hari ini …………… tanggal …………… bulan …………… tahun ……………';

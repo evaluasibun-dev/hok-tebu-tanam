@@ -398,9 +398,9 @@
           if (x.level === 'error') { fl.classList.add('salah'); ps.className = 'pesan'; } else if (!ps.textContent) ps.className = 'pesan w';
           ps.textContent = ps.textContent ? ps.textContent + '; ' + x.pesan : x.pesan;
         });
-        var t = HOK.tarif(o, ctxLokal()), tHOK = Math.round(HOK.num(o.luas) * t.hokha);
+        var t = HOK.tarif(o, ctxLokal()), tHOK = HOK.r3(HOK.num(o.luas) * t.hokha);
         var lu = HOK.num(o.luas);
-        $('#info-tarif').innerHTML = U.angka(t.hokha) + ' HOK/ha (pengolahan ' + t.hok.olah + ' + penanaman ' + t.hok.tanam + ') × ' + U.rp(t.upah) + '/HOK<br><b>Target ' + U.angka(tHOK) + ' HOK (' + U.angka(Math.round(lu * t.hok.olah)) + ' + ' + U.angka(Math.round(lu * t.hok.tanam)) + ') · nilai SPK ' + U.rp(tHOK * t.upah) + '</b>';
+        $('#info-tarif').innerHTML = U.angka(t.hokha) + ' HOK/ha (pengolahan ' + t.hok.olah + ' + penanaman ' + t.hok.tanam + ') × ' + U.rp(t.upah) + '/HOK<br><b>Target ' + U.angka(tHOK) + ' HOK (' + U.angka(HOK.r3(lu * t.hok.olah)) + ' + ' + U.angka(HOK.r3(lu * t.hok.tanam)) + ') · nilai SPK ' + U.rp(tHOK * t.upah) + '</b>';
         return hasil;
       };
       form.addEventListener('input', function () { if (tulis) { S.kotor = true; $('#status-simpan').textContent = 'Belum disimpan'; } periksa(); });
