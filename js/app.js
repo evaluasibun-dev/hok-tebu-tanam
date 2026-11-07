@@ -189,7 +189,7 @@
     render('poktan',
       '<div class="judul"><div><h1>Kelompok tani</h1><p id="ringkas-list"></p></div><div class="baris">' +
       (bisaTambah() ? '<button class="btn" id="btn-impor">Impor dari Excel v2</button><a class="btn utama" href="#/poktan/baru">Tambah poktan</a>' : '') +
-      '<button class="btn" id="btn-f13">List data poktan (F13)</button></div></div>' +
+      '<button class="btn" id="btn-f13">List data poktan (F13)</button>' + (bisaTambah() ? '<button class="btn bahaya" id="btn-bersih">Hapus poktan tidak terpakai</button>' : '') + '</div></div>' +
       '<div class="filter">' + (kabs.length > 1 ? '<label class="sr" for="f-kab">Kabupaten</label><select id="f-kab"><option value="">Semua kabupaten</option>' + kabs.map(function (k) { return '<option' + (k === f.kab ? ' selected' : '') + '>' + e(k) + '</option>'; }).join('') + '</select>' : '') +
       '<label class="sr" for="f-keg">Kegiatan</label><select id="f-keg"><option value="">Semua kegiatan</option><option' + (f.keg === 'Perluasan Tanaman Tebu' ? ' selected' : '') + '>Perluasan Tanaman Tebu</option><option' + (f.keg === 'Bongkar Ratoon' ? ' selected' : '') + '>Bongkar Ratoon</option></select>' +
       '<label class="sr" for="f-status">Status</label><select id="f-status"><option value="">Semua status</option>' + ['Ada temuan', 'Berjalan', 'Belum mulai', 'Lengkap & sesuai'].map(function (s) { return '<option' + (s === f.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' +
@@ -218,8 +218,66 @@
         $('#f-q').oninput = function () { f.q = this.value; isiTabel(); };
         if ($('#btn-impor')) $('#btn-impor').onclick = dialogImpor;
         $('#btn-f13').onclick = dialogF13;
+        if ($('#btn-bersih')) $('#btn-bersih').onclick = dialogBersih;
         isiTabel();
       });
+  }
+
+  // ---- hapus poktan yang tidak terpakai (belum ada pekerja dan berkas)
+  function dialogBersih() {
+    U.toast('Mencari poktan yang tidak terpakai…');
+    API.panggil('poktan.kosong', {}).then(function (r) {
+      if (!r.ok) { U.toast(r.pesan, true); return; }
+      var semua = r.data.poktan, kabs = [];
+      semua.forEach(function (p) { if (kabs.indexOf(p.kab) < 0) kabs.push(p.kab); });
+      if (!semua.length) {
+        U.dialog('<h2>Hapus poktan tidak terpakai</h2><p>Tidak ada poktan yang tidak terpakai. Semua ' + r.data.jumlahSemua + ' poktan sudah punya pekerja atau berkas.</p><div class="baris"><button class="btn" id="br-tutup">Tutup</button></div>', function (d) { $('#br-tutup', d).onclick = U.tutupDialog; });
+        return;
+      }
+      var kabAwal = kabs.indexOf(S.filter.kab) >= 0 ? S.filter.kab : '';
+      U.dialog('<h2>Hapus poktan tidak terpakai</h2>' +
+        '<p class="kecil muted">Daftar ini hanya berisi poktan yang <b>belum punya pekerja dan belum punya berkas</b> (' + semua.length + ' dari ' + r.data.jumlahSemua + ' poktan). Poktan yang sudah diisi nomor SPK tidak dicentang otomatis; periksa dulu sebelum mencentangnya. Poktan yang dihapus tidak bisa dikembalikan.</p>' +
+        '<div class="baris" style="margin:8px 0">' + (kabs.length > 1 ? '<select id="br-kab"><option value="">Semua kabupaten</option>' + kabs.map(function (k) { return '<option' + (k === kabAwal ? ' selected' : '') + '>' + e(k) + '</option>'; }).join('') + '</select>' : '') +
+        '<label class="kecil"><input type="checkbox" id="br-semua"> Pilih semua yang tampil</label></div>' +
+        '<div class="tbl-wrap" style="max-height:46vh;overflow:auto"><table class="t"><thead><tr><th></th><th>ID</th><th>Kelompok tani</th><th>Kegiatan</th><th>Desa · Kec.</th><th>SPK</th></tr></thead><tbody id="br-isi"></tbody></table></div>' +
+        '<div class="fld" style="margin-top:12px;max-width:360px"><label for="br-konf">Ketik <b>HAPUS</b> untuk konfirmasi</label><input id="br-konf" type="text" autocomplete="off"></div>' +
+        '<div class="baris" style="margin-top:12px"><button class="btn bahaya" id="br-ok" disabled>Hapus poktan terpilih</button><button class="btn" id="br-batal">Batal</button></div>', function (d) {
+        var pilih = {};
+        semua.forEach(function (p) { pilih[p.id] = !String(p.no_spk || '').trim(); });
+        var tampil = function () { var k = $('#br-kab', d) ? $('#br-kab', d).value : ''; return semua.filter(function (p) { return !k || p.kab === k; }); };
+        var segar = function () {
+          var n = tampil().filter(function (p) { return pilih[p.id]; }).length;
+          $('#br-ok', d).textContent = 'Hapus ' + n + ' poktan terpilih';
+          $('#br-ok', d).disabled = !n || $('#br-konf', d).value.trim().toUpperCase() !== 'HAPUS';
+        };
+        var isi = function () {
+          $('#br-isi', d).innerHTML = tampil().map(function (p) {
+            return '<tr><td><input type="checkbox" data-id="' + e(p.id) + '"' + (pilih[p.id] ? ' checked' : '') + ' aria-label="Pilih ' + e(p.poktan) + '"></td><td class="mono">' + e(p.id) + '</td><td><b>' + e(p.poktan) + '</b><div class="kecil muted">' + e(p.kab) + (p.no_cpcl ? ' · ' + e(p.no_cpcl) : '') + '</div></td>' +
+              '<td>' + namaKeg(p.keg) + '</td><td class="muted">' + e(p.desa || '–') + ' · ' + e(p.kec || '–') + '</td><td>' + (String(p.no_spk || '').trim() ? '<span class="kecil" style="color:var(--crit);font-weight:600">' + e(p.no_spk) + '</span>' : '<span class="muted">–</span>') + '</td></tr>';
+          }).join('');
+          $$('#br-isi input[type=checkbox]', d).forEach(function (c) { c.onchange = function () { pilih[c.dataset.id] = c.checked; segar(); }; });
+          $('#br-semua', d).checked = tampil().every(function (p) { return pilih[p.id]; });
+          segar();
+        };
+        if ($('#br-kab', d)) $('#br-kab', d).onchange = isi;
+        $('#br-semua', d).onchange = function () { var v = this.checked; tampil().forEach(function (p) { pilih[p.id] = v; }); isi(); };
+        $('#br-konf', d).oninput = segar;
+        $('#br-batal', d).onclick = U.tutupDialog;
+        $('#br-ok', d).onclick = function () {
+          var ids = tampil().filter(function (p) { return pilih[p.id]; }).map(function (p) { return p.id; });
+          var bt = this; bt.disabled = true; bt.textContent = 'Menghapus…';
+          API.panggil('poktan.hapusbanyak', { ids: ids }).then(function (h) {
+            if (!h.ok) { U.toast(h.pesan, true); segar(); return; }
+            U.tutupDialog();
+            var lewat = h.data.dilewati;
+            U.toast(h.data.dihapus.length + ' poktan dihapus' + (lewat.length ? '; ' + lewat.length + ' dilewati (' + lewat.slice(0, 3).map(function (x) { return x.id + ': ' + x.alasan; }).join('; ') + (lewat.length > 3 ? '; …' : '') + ')' : ''), !!lewat.length);
+            S.detail = null;
+            pastikanBoot(true).then(viewPoktanList);
+          });
+        };
+        isi();
+      });
+    });
   }
 
   function dialogF13() {
@@ -803,8 +861,11 @@
     ['bendahara', 'Bendahara pengeluaran'], ['nip_bendahara', 'NIP bendahara'], ['tim_teknis', 'Tim teknis kabupaten'], ['nip_tim_teknis', 'NIP tim teknis']];
   var FIELD_KAB_PUSAT = [['kode', 'Kode (3 huruf, untuk ID poktan)'], ['provinsi', 'Provinsi'], ['upah_pl', 'Upah/HOK khusus Perluasan'], ['upah_br', 'Upah/HOK khusus Bongkar Ratoon'], ['target_luas', 'Target luas kabupaten (ha)']];
 
+  function jmlPoktanKab(kab) { return S.boot.poktan.filter(function (p) { return p.kab === kab; }).length; }
+
   function viewPengaturan() {
     var b = S.boot, u = b.user, st = b.setting;
+    if (S.kabPengaturan && !b.kabBy[S.kabPengaturan]) S.kabPengaturan = null;
     var kabPilih = u.peran === 'kabupaten' ? u.kab : (S.kabPengaturan || b.kabupaten[0].kab);
     var formKab = function (kabNama) {
       var k = b.kabBy[kabNama] || { kab: kabNama }, tulis = bolehTulis(kabNama), fields = FIELD_KAB.concat(u.peran === 'pusat' ? FIELD_KAB_PUSAT : []);
@@ -814,7 +875,7 @@
       }).join('') + '</form>' + (tulis ? '<div class="baris" style="margin-top:12px"><button class="btn utama" id="simpan-kab" type="button">Simpan data kabupaten</button></div>' : '');
     };
     var isi = '<div class="judul"><div><h1>Pengaturan</h1><p>Data pejabat dan satuan HOK yang tercetak di SPK, BAST, kwitansi dan form lain.</p></div></div>' +
-      '<section class="panel"><div class="panel-h"><h2>Data kabupaten</h2>' + (u.peran !== 'kabupaten' ? '<div class="baris"><select id="pilih-kab">' + b.kabupaten.map(function (k) { return '<option' + (k.kab === kabPilih ? ' selected' : '') + '>' + e(k.kab) + '</option>'; }).join('') + '</select>' + (u.peran === 'pusat' ? '<button class="btn kecil" id="kab-baru">Tambah kabupaten</button>' : '') + '</div>' : '') + '</div><div id="kab-form">' + formKab(kabPilih) + '</div></section>';
+      '<section class="panel"><div class="panel-h"><h2>Data kabupaten</h2>' + (u.peran !== 'kabupaten' ? '<div class="baris"><select id="pilih-kab">' + b.kabupaten.map(function (k) { return '<option value="' + e(k.kab) + '"' + (k.kab === kabPilih ? ' selected' : '') + '>' + e(k.kab) + (u.peran === 'pusat' ? ' · ' + jmlPoktanKab(k.kab) + ' poktan' : '') + '</option>'; }).join('') + '</select>' + (u.peran === 'pusat' ? '<button class="btn kecil" id="kab-baru">Tambah kabupaten</button><button class="btn kecil bahaya" id="kab-hapus">Hapus kabupaten</button>' : '') + '</div>' : '') + '</div><div id="kab-form">' + formKab(kabPilih) + '</div></section>';
     isi += '<section class="panel"><div class="panel-h"><h2>Kode akses saya</h2></div><p class="kecil muted" style="margin-bottom:10px">Ganti kode akses Anda sendiri. Kode baru 8–24 karakter, campuran huruf dan angka (boleh tanda -). Kosongkan kode baru bila ingin dibuatkan kode acak. Setelah diganti, kode lama tidak berlaku dan perangkat lain yang masih masuk dengan kode lama akan keluar otomatis.</p>' +
       '<form id="f-kode" class="form-grid" autocomplete="off"><div class="fld"><label for="kd-lama">Kode akses sekarang</label><input id="kd-lama" type="password" autocomplete="off"></div>' +
       '<div class="fld"><label for="kd-baru">Kode baru (opsional)</label><input id="kd-baru" type="password" autocomplete="off" placeholder="kosongkan = dibuatkan acak"></div>' +
@@ -852,6 +913,28 @@
         });
       };
       if ($('#pilih-kab')) $('#pilih-kab').onchange = function () { S.kabPengaturan = kabPilih = this.value; $('#kab-form').innerHTML = formKab(kabPilih); pasangKab(); };
+      if ($('#kab-hapus')) $('#kab-hapus').onclick = function () {
+        var kab = kabPilih, n = jmlPoktanKab(kab);
+        if (n) { U.toast('Kabupaten ' + kab + ' masih punya ' + n + ' poktan. Hapus dulu poktannya (menu Kelompok tani › Hapus poktan tidak terpakai), baru kabupatennya.', true); return; }
+        var akun = '';
+        U.dialog('<h2>Hapus kabupaten ' + e(kab) + '</h2><p>Kabupaten ini tidak punya poktan. Setelah dihapus, kabupaten hilang dari daftar dan semua <b>akun operator kabupaten ' + e(kab) + '</b> dinonaktifkan. Tindakan ini tidak bisa dibatalkan dari aplikasi; bila perlu, tambahkan lagi lewat Tambah kabupaten.</p>' +
+          '<div class="fld" style="max-width:360px"><label for="hk-konf">Ketik <b>HAPUS</b> untuk konfirmasi</label><input id="hk-konf" type="text" autocomplete="off"></div>' +
+          '<div class="baris" style="margin-top:12px"><button class="btn bahaya" id="hk-ok" disabled>Hapus kabupaten</button><button class="btn" id="hk-batal">Batal</button></div>', function (dl) {
+          $('#hk-konf', dl).oninput = function () { $('#hk-ok', dl).disabled = this.value.trim().toUpperCase() !== 'HAPUS'; };
+          $('#hk-batal', dl).onclick = U.tutupDialog;
+          $('#hk-ok', dl).onclick = function () {
+            this.disabled = true;
+            API.panggil('kab.hapus', { kab: kab }).then(function (r) {
+              if (!r.ok) { U.toast(r.pesan, true); return; }
+              U.tutupDialog();
+              S.kabPengaturan = null;
+              if (S.filter.kab === kab) S.filter.kab = '';
+              U.toast('Kabupaten ' + kab + ' dihapus' + (r.data.akunNonaktif ? '; ' + r.data.akunNonaktif + ' akun operatornya dinonaktifkan' : ''));
+              pastikanBoot(true).then(viewPengaturan);
+            });
+          };
+        });
+      };
       if ($('#kab-baru')) $('#kab-baru').onclick = function () {
         U.dialog('<h2>Tambah kabupaten</h2><div class="form-grid"><div class="fld"><label for="nk-kab">Nama kabupaten</label><input id="nk-kab" type="text"></div><div class="fld"><label for="nk-kode">Kode 3 huruf</label><input id="nk-kode" type="text" maxlength="4"></div>' +
           '<div class="fld"><label for="nk-prov">Provinsi</label><select id="nk-prov">' + b.provinsi.map(function (p) { return '<option>' + e(p.provinsi) + '</option>'; }).join('') + '</select></div></div><div class="baris"><button class="btn utama" id="nk-ok">Simpan</button></div>', function (dl) {

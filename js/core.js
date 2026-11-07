@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.0.1';
+  var VERSI = '2.0.2';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -1123,6 +1123,71 @@ var HOK = (function () {
     return hasil;
   }
 
+
+  // ---- pembersihan: poktan & kabupaten yang tidak terpakai
+  // poktan dianggap tidak terpakai bila belum punya pekerja dan belum punya berkas
+  function pakaiPoktan(p, ctx) {
+    var dk = parseJSON(p.dok, {}), nFile = 0;
+    Object.keys(dk || {}).forEach(function (k) { nFile += (dk[k] || []).length; });
+    var nPek = (ctx.pekerjaPer[p.id] || []).length;
+    return { nPek: nPek, nFile: nFile, terpakai: nPek > 0 || nFile > 0 };
+  }
+
+  function aksiPoktanKosong(req, user, env) {
+    if (user.peran === 'provinsi') return gagal('AKSES', 'Peran provinsi hanya dapat melihat data');
+    var ctx = konteks(env);
+    var list = ctx.poktan.filter(function (p) { return bolehTulisKab(user, p.kab) && !pakaiPoktan(p, ctx).terpakai; }).map(function (p) {
+      return { id: p.id, poktan: p.poktan, kab: p.kab, keg: p.keg, kec: p.kec, desa: p.desa, no_cpcl: p.no_cpcl, no_spk: p.no_spk, luas: p.luas, diubah: p.diubah };
+    });
+    var semua = ctx.poktan.filter(function (p) { return bolehTulisKab(user, p.kab); }).length;
+    return ok({ poktan: list, jumlahSemua: semua });
+  }
+
+  function aksiPoktanHapusBanyak(req, user, env) {
+    if (user.peran === 'provinsi') return gagal('AKSES', 'Peran provinsi hanya dapat melihat data');
+    var ids = (req.ids || []).map(s).filter(Boolean);
+    if (!ids.length) return gagal('VALIDASI', 'Pilih minimal satu poktan');
+    if (ids.length > 500) return gagal('VALIDASI', 'Maksimal 500 poktan sekali hapus');
+    return env.lock(function () {
+      var ctx = konteks(env), hapus = [], lewat = [];
+      ids.forEach(function (id) {
+        var p = ctx.poktanBy[id];
+        if (!p) return lewat.push({ id: id, alasan: 'tidak ditemukan' });
+        if (!bolehTulisKab(user, p.kab)) return lewat.push({ id: id, alasan: 'bukan wilayah Anda' });
+        var st = pakaiPoktan(p, ctx);
+        if (st.nPek) return lewat.push({ id: id, alasan: 'masih punya ' + st.nPek + ' pekerja' });
+        if (st.nFile) return lewat.push({ id: id, alasan: 'masih punya ' + st.nFile + ' berkas' });
+        hapus.push(p);
+      });
+      if (hapus.length) {
+        env.store.remove('POKTAN', hapus.map(function (p) { return p.id; }));
+        hapus.forEach(function (p) { catat(env, user, 'hapus poktan', p.id + ' ' + p.poktan + ' (pembersihan poktan tidak terpakai)'); });
+      }
+      return ok({ dihapus: hapus.map(function (p) { return p.id; }), dilewati: lewat });
+    });
+  }
+
+  // kabupaten hanya bisa dihapus pusat, dan hanya bila tidak punya poktan lagi; akun kabupaten itu dinonaktifkan
+  function aksiKabHapus(req, user, env) {
+    if (user.peran !== 'pusat') return gagal('AKSES', 'Hanya pusat yang boleh menghapus kabupaten');
+    return env.lock(function () {
+      var ctx = konteks(env), kab = s(req.kab), k = ctx.kabBy[kab];
+      if (!k) return gagal('TIDAK_ADA', 'Kabupaten tidak ditemukan');
+      var nPok = ctx.poktan.filter(function (p) { return p.kab === kab; }).length;
+      if (nPok) return gagal('VALIDASI', 'Kabupaten ' + kab + ' masih punya ' + nPok + ' poktan. Hapus atau pindahkan poktannya dulu.');
+      var akun = env.store.all('PENGGUNA').filter(function (u) { return u.peran === 'kabupaten' && s(u.kab) === kab; });
+      var nonaktif = akun.filter(function (u) { return s(u.aktif) !== 'Tidak'; });
+      if (nonaktif.length) {
+        nonaktif.forEach(function (u) { u.aktif = 'Tidak'; });
+        env.store.upsert('PENGGUNA', nonaktif);
+        nonaktif.forEach(function (u) { statusAkun(u.id, env, true); });
+      }
+      env.store.remove('KABUPATEN', [kab]);
+      catat(env, user, 'hapus kabupaten', kab + (nonaktif.length ? '; ' + nonaktif.length + ' akun kabupaten dinonaktifkan' : ''));
+      return ok({ kab: kab, akunNonaktif: nonaktif.length });
+    });
+  }
+
   // ------------------------------------------------------------------ pintu masuk
   function handle(req, env) {
     try {
@@ -1138,12 +1203,15 @@ var HOK = (function () {
         case 'poktan.get': return aksiPoktanGet(req, user, env);
         case 'poktan.simpan': return aksiPoktanSimpan(req, user, env);
         case 'poktan.hapus': return aksiPoktanHapus(req, user, env);
+        case 'poktan.kosong': return aksiPoktanKosong(req, user, env);
+        case 'poktan.hapusbanyak': return aksiPoktanHapusBanyak(req, user, env);
         case 'pekerja.simpan': return aksiPekerjaSimpan(req, user, env);
         case 'berkas.daftar': return aksiBerkasDaftar(req, user, env);
         case 'berkas.unggah': return aksiBerkasUnggah(req, user, env);
         case 'berkas.lihat': return aksiBerkasLihat(req, user, env);
         case 'berkas.hapus': return aksiBerkasHapus(req, user, env);
         case 'kab.simpan': return aksiKabSimpan(req, user, env);
+        case 'kab.hapus': return aksiKabHapus(req, user, env);
         case 'setting.simpan': return aksiSettingSimpan(req, user, env);
         case 'pengguna.daftar': case 'pengguna.buat': case 'pengguna.status': case 'pengguna.gantikode': return aksiPengguna(req, user, env);
         case 'akun.gantikode': return aksiGantiKodeSendiri(req, user, env);
