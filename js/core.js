@@ -1,12 +1,12 @@
 /*
- * HOK Tebu 2026 (skema 15 + 25: pengolahan lahan dan penanaman) – logika inti
+ * HOK Tebu 2026 (skema 15 + 25: pengolahan tanah dan penanaman) – logika inti
  * Dipakai bersama oleh Apps Script (Core.gs), halaman web (validasi langsung) dan mode demo.
  * Jangan mengubah salah satu salinan saja: ubah di sini, lalu salin ulang ke Core.gs.
  */
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.1.2';
+  var VERSI = '2.2.2';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -23,29 +23,29 @@ var HOK = (function () {
     LOG: ['waktu', 'pengguna', 'aksi', 'rincian']
   };
 
-  // Teks kegiatan untuk skema 15 + 25 HOK (pengolahan lahan dan penanaman). Sesuaikan dengan juknis bila ada perbedaan istilah.
+  // Teks kegiatan untuk skema 15 + 25 HOK (pengolahan tanah dan penanaman). Sesuaikan dengan juknis bila ada perbedaan istilah.
   var KEG = {
     'Perluasan Tanaman Tebu': {
       kode: 'PL', nama: 'Perluasan Tanaman Tebu', judul: 'KEGIATAN PERLUASAN TANAMAN TEBU',
-      bantuan: 'Bantuan Biaya Pengolahan Lahan dan Penanaman', jenis: 'Pengolahan Lahan dan Penanaman',
-      frasa: 'Bantuan Biaya Pengolahan Lahan dan Penanaman Kegiatan Perluasan Tanaman Tebu',
-      biaya: 'Biaya Pengolahan Lahan dan Penanaman Kegiatan Perluasan Tanaman Tebu',
-      spk2: 'BIAYA PENGOLAHAN LAHAN DAN PENANAMAN', spk3: 'KEGIATAN PERLUASAN TANAMAN TEBU',
-      sptjm: 'Kegiatan Perluasan Tanaman Tebu', dok3: 'PENGOLAHAN LAHAN DAN PENANAMAN', swadaya: 'Perluasan Tanaman Tebu'
+      bantuan: 'Bantuan Biaya Pengolahan Tanah dan Penanaman', jenis: 'Pengolahan Tanah dan Penanaman',
+      frasa: 'Bantuan Biaya Pengolahan Tanah dan Penanaman Kegiatan Perluasan Tanaman Tebu',
+      biaya: 'Biaya Pengolahan Tanah dan Penanaman Kegiatan Perluasan Tanaman Tebu',
+      spk2: 'BIAYA PENGOLAHAN TANAH DAN PENANAMAN', spk3: 'KEGIATAN PERLUASAN TANAMAN TEBU',
+      sptjm: 'Kegiatan Perluasan Tanaman Tebu', dok3: 'PENGOLAHAN TANAH DAN PENANAMAN', swadaya: 'Perluasan Tanaman Tebu'
     },
     'Bongkar Ratoon': {
       kode: 'BR', nama: 'Bongkar Ratoon', judul: 'KEGIATAN BONGKAR RATOON',
-      bantuan: 'Bantuan Biaya Pengolahan Lahan dan Penanaman', jenis: 'Pengolahan Lahan dan Penanaman',
-      frasa: 'Bantuan Biaya Pengolahan Lahan dan Penanaman Kegiatan Bongkar Ratoon',
-      biaya: 'Biaya Pengolahan Lahan dan Penanaman Kegiatan Bongkar Ratoon',
-      spk2: 'BIAYA PENGOLAHAN LAHAN DAN PENANAMAN', spk3: 'KEGIATAN BONGKAR RATOON TANAMAN TEBU',
-      sptjm: 'Kegiatan Bongkar Ratoon', dok3: 'PENGOLAHAN LAHAN DAN PENANAMAN', swadaya: 'Bongkar Ratoon'
+      bantuan: 'Bantuan Biaya Pengolahan Tanah dan Penanaman', jenis: 'Pengolahan Tanah dan Penanaman',
+      frasa: 'Bantuan Biaya Pengolahan Tanah dan Penanaman Kegiatan Bongkar Ratoon',
+      biaya: 'Biaya Pengolahan Tanah dan Penanaman Kegiatan Bongkar Ratoon',
+      spk2: 'BIAYA PENGOLAHAN TANAH DAN PENANAMAN', spk3: 'KEGIATAN BONGKAR RATOON TANAMAN TEBU',
+      sptjm: 'Kegiatan Bongkar Ratoon', dok3: 'PENGOLAHAN TANAH DAN PENANAMAN', swadaya: 'Bongkar Ratoon'
     }
   };
 
-  // Jenis pekerjaan: HOK per hektare dibagi 15 untuk pengolahan lahan dan 25 untuk penanaman (diatur di SETTING)
+  // Jenis pekerjaan: HOK per hektare dibagi 15 untuk pengolahan tanah dan 25 untuk penanaman (diatur di SETTING)
   var JENIS = {
-    olah: { kode: 'olah', label: 'Pengolahan Lahan', judul: 'PENGOLAHAN LAHAN', kunci: 'hokha_olah', bawaan: 15 },
+    olah: { kode: 'olah', label: 'Pengolahan Tanah', judul: 'PENGOLAHAN TANAH', kunci: 'hokha_olah', bawaan: 15 },
     tanam: { kode: 'tanam', label: 'Penanaman', judul: 'PENANAMAN', kunci: 'hokha_tanam', bawaan: 25 }
   };
   var DAFTAR_JENIS = ['olah', 'tanam'];
@@ -103,9 +103,11 @@ var HOK = (function () {
   function ak(x) { return String(r3(x)).replace('.', ','); } // angka dengan koma desimal untuk pesan
   function desimal3(v) { var x = num(v); return Math.abs(x * 1000 - Math.round(x * 1000)) < 1e-6; }
   function num(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : 0;
     var t = s(v);
     if (!t) return 0;
-    if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');
+    // titik ribuan (1.250 = seribu dua ratus lima puluh); angka diawali 0 (0.375) tetap desimal
+    if (/^-?[1-9]\d{0,2}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');
     else if (t.indexOf(',') >= 0 && t.indexOf('.') < 0) t = t.replace(',', '.');
     else t = t.replace(/,/g, '');
     var n = parseFloat(t);
@@ -127,7 +129,23 @@ var HOK = (function () {
   function kodeKeg(keg) { return KEG[keg] ? KEG[keg].kode : 'PL'; }
   function idLokal(id) { var m = s(id).match(/P\d+$/); return m ? m[0] : s(id); }
   function namaFolder(p) { return idLokal(p.id) + '_' + bersih(p.poktan) + '_' + kodeKeg(p.keg); }
-  function parseHadir(t) { return s(t) ? s(t).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : []; }
+  // kehadiran: "2026-09-01,2026-09-02:0.5" → tanggal hadir; nilai HOK per tanggal bawaan 1, boleh pecahan (0 < nilai ≤ 1)
+  function parseHadir(t) { return s(t) ? s(t).split(',').map(function (x) { return x.trim().split(':')[0]; }).filter(Boolean) : []; }
+  function parseNilai(t) {
+    var o = {};
+    if (Array.isArray(t)) return o;
+    s(t).split(',').forEach(function (x) { var a = x.trim().split(':'); if (a[1] !== undefined && a[0]) o[a[0]] = num(a[1]); });
+    return o;
+  }
+  function nilaiW(w) { return w._nilai || w.nilai || (typeof w.hadir === 'string' ? parseNilai(w.hadir) : {}); }
+  // jumlah HOK satu pekerja (opsional hanya tanggal yang lolos saring)
+  function hokW(w, saring) {
+    var hd = w._hadir || parseHadir(w.hadir), nl = nilaiW(w), t = 0;
+    hd.forEach(function (x) { if (!saring || saring(x)) t += nl[x] !== undefined && nl[x] !== '' ? Number(nl[x]) : 1; });
+    return r3(t);
+  }
+  function teksHadir(hd, nl) { return hd.map(function (x) { var v = nl && nl[x] !== undefined ? r3(num(nl[x])) : 1; return v === 1 ? x : x + ':' + v; }).join(','); }
+  function nilaiSah(v) { return v > 0 && v <= 1 && desimal3(v); }
   function parseJSON(t, def) { try { return t ? JSON.parse(t) : def; } catch (e) { return def; } }
   function by(arr, key) { var o = {}; arr.forEach(function (r) { o[r[key]] = r; }); return o; }
 
@@ -218,6 +236,7 @@ var HOK = (function () {
     ctx.pekerjaPer = {};
     ctx.pekerja.forEach(function (w) {
       w._hadir = parseHadir(w.hadir);
+      w._nilai = parseNilai(w.hadir);
       (ctx.pekerjaPer[w.id_poktan] = ctx.pekerjaPer[w.id_poktan] || []).push(w);
     });
     return ctx;
@@ -296,11 +315,11 @@ var HOK = (function () {
     if (d('mulai') && d('tgl_spk') && d('mulai') <= d('tgl_spk')) E('mulai', 'Pekerjaan harus dimulai setelah tanggal SPK');
     if (d('selesai') && d('mulai') && d('selesai') < d('mulai')) E('selesai', 'Tanggal selesai sebelum tanggal mulai');
     if (d('selesai') && d('spk_sd') && d('selesai') > d('spk_sd')) E('selesai', 'Pekerjaan selesai melewati masa berlaku SPK');
-    if (d('mulai_olah') && d('mulai') && d('mulai_olah') < d('mulai')) E('mulai_olah', 'Pengolahan lahan tidak boleh dimulai sebelum tanggal mulai pekerjaan (SPK)');
-    if (d('mulai_olah') && d('selesai') && d('mulai_olah') > d('selesai')) E('mulai_olah', 'Pengolahan lahan harus dimulai sebelum tanggal selesai pekerjaan');
+    if (d('mulai_olah') && d('mulai') && d('mulai_olah') < d('mulai')) E('mulai_olah', 'Pengolahan tanah tidak boleh dimulai sebelum tanggal mulai pekerjaan (SPK)');
+    if (d('mulai_olah') && d('selesai') && d('mulai_olah') > d('selesai')) E('mulai_olah', 'Pengolahan tanah harus dimulai sebelum tanggal selesai pekerjaan');
     if (d('selesai_olah') && d('mulai_olah') && d('selesai_olah') < d('mulai_olah')) E('selesai_olah', 'Selesai pengolahan sebelum mulai pengolahan');
     if (d('selesai_olah') && d('mulai') && d('selesai_olah') < d('mulai')) E('selesai_olah', 'Selesai pengolahan sebelum tanggal mulai pekerjaan (SPK)');
-    if (d('selesai_olah') && d('selesai') && d('selesai_olah') > d('selesai')) E('selesai_olah', 'Pengolahan lahan harus selesai paling lambat tanggal selesai pekerjaan (SPK)');
+    if (d('selesai_olah') && d('selesai') && d('selesai_olah') > d('selesai')) E('selesai_olah', 'Pengolahan tanah harus selesai paling lambat tanggal selesai pekerjaan (SPK)');
     if (d('mulai_tanam') && d('mulai') && d('mulai_tanam') < d('mulai')) E('mulai_tanam', 'Penanaman tidak boleh dimulai sebelum tanggal mulai pekerjaan (SPK)');
     if (d('mulai_tanam') && d('selesai') && d('mulai_tanam') > d('selesai')) E('mulai_tanam', 'Penanaman harus dimulai paling lambat tanggal selesai pekerjaan');
     var batasSpk = num(ctx.setting.batas_hari_spk);
@@ -319,11 +338,11 @@ var HOK = (function () {
         var tJ = r3(num(p.luas) * t.hok[j]), rJ = 0, luar = 0;
         pek.filter(function (w) { return jenisW(w) === j; }).forEach(function (w) {
           var hd = w._hadir || parseHadir(w.hadir);
-          rJ += hd.length;
+          rJ += hokW(w);
           hd.forEach(function (x) { if (diLuar(p, j, x)) luar++; });
         });
         if (luar) E(j === 'olah' ? (d('selesai_olah') ? 'selesai_olah' : 'mulai_olah') : 'mulai_tanam', luar + ' hari kehadiran ' + JENIS[j].label.toLowerCase() + ' berada di luar masa ' + JENIS[j].label.toLowerCase());
-        if (tJ && rJ > tJ) E('luas', 'Realisasi HOK ' + JENIS[j].label.toLowerCase() + ' (' + rJ + ') melebihi target HOK ' + JENIS[j].label.toLowerCase() + ' (' + ak(tJ) + ')');
+        if (tJ && r3(rJ) > tJ) E('luas', 'Realisasi HOK ' + JENIS[j].label.toLowerCase() + ' (' + ak(rJ) + ') melebihi target HOK ' + JENIS[j].label.toLowerCase() + ' (' + ak(tJ) + ')');
       });
     }
     // NIK ketua / rekening dipakai poktan lain (nama poktan berbeda)
@@ -341,7 +360,7 @@ var HOK = (function () {
   // rows: [{id, nama, nik, alamat, hadir:[iso]}]; others: pekerja poktan lain (seluruh kabupaten)
   // opsi.lama: baris pekerja poktan ini yang sudah tersimpan. Bentrok pada tanggal yang sudah tersimpan sebelumnya
   // tidak memblokir simpan (tetap tercatat sebagai temuan); hanya tanggal baru yang bentrok yang ditolak.
-  // awal kehadiran HOK = tgl mulai pengolahan lahan (bila diisi), selain itu tgl mulai pekerjaan SPK; akhirnya = tgl selesai pekerjaan
+  // awal kehadiran HOK = tgl mulai pengolahan tanah (bila diisi), selain itu tgl mulai pekerjaan SPK; akhirnya = tgl selesai pekerjaan
   function awalHadir(p) { return periode(p, 'olah').awal; }
   // periode kehadiran per jenis pekerjaan. Pengolahan: tgl mulai–selesai pengolahan; penanaman: tgl mulai penanaman–tgl selesai pekerjaan (SPK).
   // Bila belum diisi, memakai tgl mulai/selesai pekerjaan SPK. Kedua periode boleh tumpang tindih.
@@ -352,13 +371,13 @@ var HOK = (function () {
   }
   function diLuar(p, j, x) { var pr = periode(p, j); return (pr.awal && x < pr.awal) || (pr.akhir && x > pr.akhir); }
 
-  // opsi.jenis: 'olah' (pengolahan lahan, bawaan) atau 'tanam' (penanaman). rows = daftar pekerja jenis itu saja.
+  // opsi.jenis: 'olah' (pengolahan tanah, bawaan) atau 'tanam' (penanaman). rows = daftar pekerja jenis itu saja.
   // Satu NIK boleh ikut kedua jenis pekerjaan, tetapi tidak boleh tercatat hadir di dua tempat (poktan lain atau jenis lain) pada tanggal yang sama.
   function validasiPekerja(p, rows, ctx, opsi) {
     opsi = opsi || {};
     var j = jenisOk(opsi.jenis), lbl = JENIS[j].label.toLowerCase();
     var errors = [], warns = [], lama = {};
-    (opsi.lama || []).forEach(function (w) { var k = s(w.nik); lama[k] = lama[k] || {}; (w._hadir || w.hadir || []).forEach(function (x) { lama[k][x] = 1; }); });
+    (opsi.lama || []).forEach(function (w) { var k = s(w.nik); lama[k] = lama[k] || {}; (w._hadir || parseHadir(w.hadir)).forEach(function (x) { lama[k][x] = 1; }); });
     var t = tarif(p, ctx), tHOK = r3(num(p.luas) * t.hok[j]);
     var pr = periode(p, j), mulai = pr.awal, selesai = pr.akhir;
     var lain = ctx.pekerja.filter(function (w) { return !(w.id_poktan === p.id && jenisW(w) === j); });
@@ -368,7 +387,7 @@ var HOK = (function () {
     if (rows.some(function (r) { return (r.hadir || []).length; }) && (!mulai || !selesai))
       errors.push({ row: -1, field: 'mulai', pesan: 'Isi tanggal mulai dan selesai pekerjaan serta tanggal ' + lbl + ' di Data Poktan sebelum mengisi kehadiran' });
     rows.forEach(function (r, i) {
-      var nama = s(r.nama), nik = s(r.nik), hd = r.hadir || [];
+      var nama = s(r.nama), nik = s(r.nik), hd = parseHadir(r.hadir), nl = r.nilai || (typeof r.hadir === 'string' ? parseNilai(r.hadir) : {}), totRow = 0;
       if (!nama) errors.push({ row: i, field: 'nama', pesan: 'Nama pekerja wajib diisi' });
       var nk = cekNik(nik);
       if (nk.error) errors.push({ row: i, field: 'nik', pesan: nk.error });
@@ -380,6 +399,9 @@ var HOK = (function () {
         if (!isISO(x)) { errors.push({ row: i, field: 'hadir', tanggal: x, pesan: 'Tanggal tidak valid: ' + x }); return; }
         if (uniq[x]) return;
         uniq[x] = 1;
+        var nv = nl[x] !== undefined && nl[x] !== '' ? num(nl[x]) : 1;
+        if (!nilaiSah(nv)) errors.push({ row: i, field: 'hadir', tanggal: x, pesan: 'Nilai HOK ' + tglPendek(x) + ' = ' + ak(nv) + ': harus lebih dari 0 dan paling banyak 1, maksimal 3 angka di belakang koma' });
+        else totRow += nv;
         if ((mulai && x < mulai) || (selesai && x > selesai)) errors.push({ row: i, field: 'hadir', tanggal: x, pesan: 'Hadir ' + tglPendek(x) + ' di luar masa ' + lbl + ' (' + tglPendek(mulai) + ' – ' + tglPendek(selesai) + ')' });
         var bentrok = idx[nik] && idx[nik][x];
         if (bentrok && bentrok.length) {
@@ -393,7 +415,7 @@ var HOK = (function () {
           else errors.push({ row: i, field: 'hadir', tanggal: x, pesan: m });
         }
       });
-      total += Object.keys(uniq).length;
+      total = r3(total + totRow);
       if (batas && nik) {
         var perBulan = {};
         Object.keys(uniq).forEach(function (x) { (perBulan[x.slice(0, 7)] = perBulan[x.slice(0, 7)] || {})[x] = 1; });
@@ -404,7 +426,7 @@ var HOK = (function () {
         });
       }
     });
-    if (tHOK && total > tHOK) errors.push({ row: -1, field: 'hadir', pesan: 'Total HOK ' + lbl + ' (' + total + ') melebihi target HOK ' + lbl + ' (' + ak(tHOK) + ' = ' + t.hok[j] + ' HOK/ha × ' + ak(num(p.luas)) + ' ha)' });
+    if (tHOK && total > tHOK) errors.push({ row: -1, field: 'hadir', pesan: 'Total HOK ' + lbl + ' (' + ak(total) + ') melebihi target HOK ' + lbl + ' (' + ak(tHOK) + ' = ' + t.hok[j] + ' HOK/ha × ' + ak(num(p.luas)) + ' ha)' });
     return { errors: errors, peringatan: warns, total: total, tHOK: tHOK, jenis: j };
   }
 
@@ -459,7 +481,7 @@ var HOK = (function () {
       pek.forEach(function (w) {
         var nik = s(w.nik), j = jenisW(w), pj = per[j];
         if (niks.indexOf(nik) < 0) niks.push(nik);
-        rHOK += w._hadir.length; pj.rHOK += w._hadir.length; pj.nPek++;
+        var hw = hokW(w); rHOK += hw; pj.rHOK = r3(pj.rHOK + hw); pj.nPek++;
         w._hadir.forEach(function (x) {
           if (!minD || x < minD) minD = x; if (!maxD || x > maxD) maxD = x;
           if (!pj.awal || x < pj.awal) pj.awal = x; if (!pj.akhir || x > pj.akhir) pj.akhir = x;
@@ -469,8 +491,8 @@ var HOK = (function () {
         nk.peringatan.forEach(function (m) { msgs.push(m); });
         if (nik && seen[nik + '|' + j]) { msgs.push('NIK ganda dalam daftar ' + JENIS[j].label.toLowerCase() + ' yang sama'); lvl = 'error'; }
         seen[nik + '|' + j] = 1;
-        var luar = w._hadir.filter(function (x) { return diLuar(p, j, x); }).length;
-        if (luar) { msgs.push('hadir ' + luar + ' hari di luar masa ' + JENIS[j].label.toLowerCase()); lvl = 'error'; extra += luar; }
+        var fLuar = function (x) { return diLuar(p, j, x); }, luar = w._hadir.filter(fLuar).length;
+        if (luar) { msgs.push('hadir ' + luar + ' hari di luar masa ' + JENIS[j].label.toLowerCase()); lvl = 'error'; extra += hokW(w, fLuar); }
         if (gandaInfo[w.id]) {
           var g = gandaInfo[w.id], lainId = {};
           g.forEach(function (x) { x.lain.forEach(function (q) { lainId[q] = 1; }); });
@@ -491,7 +513,8 @@ var HOK = (function () {
         if (msgs.length) temuan.push({ id_poktan: p.id, kab: p.kab, poktan: p.poktan, objek: 'Pekerja ' + JENIS[j].label.toLowerCase(), nama: w.nama, nik: nik,
           jenis: jenisPekerja(msgs), level: lvl, pesan: msgs.join('; '), rp: rpPek });
       });
-      var rBiaya = rHOK * t.upah;
+      rHOK = r3(rHOK);
+      var rBiaya = r3(rHOK * t.upah);
       var luasEff = Math.min(num(p.luas), num(p.real_luas) || num(p.luas));
       var wajar = luasEff * Math.min(t.hokha, t.stdHok) * (t.stdUpah ? Math.min(t.upah, t.stdUpah) : t.upah);
       var potensi = Math.round(Math.max(Math.max(0, rBiaya - wajar), potPek));
@@ -557,7 +580,7 @@ var HOK = (function () {
       r.temuan += h.nTemuan ? 1 : 0; r.potensi += h.potensi; r.dokAda += h.dok.ada; r.dokButuh += h.dok.butuh; r.dokLengkap += h.dok.lengkap ? 1 : 0;
       if (h.tahap >= 2) r.berjalan++;
       for (var i = 1; i <= h.tahap; i++) tahapN[i]++;
-      (ctx.pekerjaPer[p.id] || []).forEach(function (w) { w._hadir.forEach(function (x) { var m = senin(x); minggu[m] = (minggu[m] || 0) + 1; }); });
+      (ctx.pekerjaPer[p.id] || []).forEach(function (w) { var nlw = w._nilai || {}; w._hadir.forEach(function (x) { var m = senin(x); minggu[m] = r3((minggu[m] || 0) + (nlw[x] !== undefined ? nlw[x] : 1)); }); });
     });
     var rows = kabs.map(function (k) { return perKab[k]; });
     var tot = rows.reduce(function (a, r) {
@@ -707,7 +730,7 @@ var HOK = (function () {
     });
     return ok({
       poktan: poktanKeluar(p, hit.per[p.id]),
-      pekerja: pek.map(function (w) { return { id: w.id, nama: w.nama, nik: w.nik, alamat: w.alamat, hadir: w._hadir, jenis: jenisW(w) }; }),
+      pekerja: pek.map(function (w) { return { id: w.id, nama: w.nama, nik: w.nik, alamat: w.alamat, hadir: w._hadir, nilai: w._nilai, jenis: jenisW(w) }; }),
       konflik: konflik,
       kabupaten: ctx.kabBy[p.kab] || {},
       provinsi: ctx.provBy[(ctx.kabBy[p.kab] || {}).provinsi] || {},
@@ -791,7 +814,8 @@ var HOK = (function () {
       }
       var rows = (req.rows || []).map(function (r) {
         var hd = {}; (r.hadir || []).forEach(function (x) { hd[s(x)] = 1; });
-        return { id: s(r.id), nama: s(r.nama), nik: s(r.nik).replace(/\s+/g, ''), alamat: s(r.alamat), hadir: Object.keys(hd).sort() };
+        var nl = {}; Object.keys(r.nilai || {}).forEach(function (x) { if (hd[x] && r.nilai[x] !== '' && r3(num(r.nilai[x])) !== 1) nl[x] = r3(num(r.nilai[x])); });
+        return { id: s(r.id), nama: s(r.nama), nik: s(r.nik).replace(/\s+/g, ''), alamat: s(r.alamat), hadir: Object.keys(hd).sort(), nilai: nl };
       });
       var v = validasiPekerja(p, rows, ctx, { lama: pekLama, jenis: j });
       if (v.errors.length) return gagal('VALIDASI', 'Kehadiran ' + JENIS[j].label.toLowerCase() + ' belum bisa disimpan. Perbaiki ' + v.errors.length + ' isian yang ditandai.', v);
@@ -799,7 +823,7 @@ var HOK = (function () {
       rows.forEach(function (r) {
         var id = r.id && lama[r.id] ? r.id : p.id + '-' + (j === 'tanam' ? 'T' : 'O') + env.uuid().replace(/-/g, '').slice(0, 8).toUpperCase();
         dipakai[id] = 1;
-        var baru = { id: id, id_poktan: p.id, kab: p.kab, nama: r.nama, nik: r.nik, alamat: r.alamat, hadir: r.hadir.join(','), jenis: j };
+        var baru = { id: id, id_poktan: p.id, kab: p.kab, nama: r.nama, nik: r.nik, alamat: r.alamat, hadir: teksHadir(r.hadir, r.nilai), jenis: j };
         var l = lama[id];
         if (!l || l.nama !== baru.nama || l.nik !== baru.nik || l.alamat !== baru.alamat || l.hadir !== baru.hadir || l.kab !== baru.kab || jenisW(l) !== j) {
           baru.diubah = waktuJakarta(env); baru.oleh = user.nama;
@@ -811,7 +835,7 @@ var HOK = (function () {
       var baruPer = by(simpan, 'id'), akhir = Object.keys(dipakai).map(function (id) { return baruPer[id] || lama[id]; });
       if (simpan.length || hapus.length) { try { env.cache.put(kunciUbah, JSON.stringify({ oleh: user.nama, diubah: waktuJakarta(env) }), 21600); } catch (x) { /* abaikan */ } }
       if (hapus.length) env.store.remove('PEKERJA', hapus);
-      catat(env, user, 'simpan kehadiran ' + JENIS[j].label.toLowerCase(), p.id + ': ' + rows.length + ' pekerja, ' + v.total + ' HOK, ' + simpan.length + ' baris berubah, ' + hapus.length + ' dihapus');
+      catat(env, user, 'simpan kehadiran ' + JENIS[j].label.toLowerCase(), p.id + ': ' + rows.length + ' pekerja, ' + ak(v.total) + ' HOK, ' + simpan.length + ' baris berubah, ' + hapus.length + ' dihapus');
       return ok({ jenis: j, total: v.total, tHOK: v.tHOK, peringatan: v.peringatan, berubah: simpan.length, dihapus: hapus.length, versi: versiPekerja(akhir) });
     });
   }
@@ -930,11 +954,11 @@ var HOK = (function () {
   function ukurKecepatan(env) {
     var t0 = Date.now(), jam = function () { var t = Date.now() - t0; t0 = Date.now(); return t; }, h = {};
     var ctx = konteks(env); h.baca_semua_ms = jam();
-    h.baris = { poktan: ctx.poktan.length, pekerja: ctx.pekerja.length, hadir: ctx.pekerja.reduce(function (a, w) { return a + w._hadir.length; }, 0) };
+    h.baris = { poktan: ctx.poktan.length, pekerja: ctx.pekerja.length, hadir: ctx.pekerja.reduce(function (a, w) { return a + w._hadir.length; }, 0), hok: r3(ctx.pekerja.reduce(function (a, w) { return a + hokW(w); }, 0)) };
     hitungSemua(ctx); h.hitung_rekap_ms = jam();
     var besar = Object.keys(ctx.pekerjaPer).sort(function (a, b) { return ctx.pekerjaPer[b].length - ctx.pekerjaPer[a].length; })[0];
     if (besar) {
-      var p = ctx.poktanBy[besar], rows = ctx.pekerjaPer[besar].map(function (w) { return { id: w.id, nama: w.nama, nik: w.nik, alamat: w.alamat, hadir: w._hadir }; });
+      var p = ctx.poktanBy[besar], rows = ctx.pekerjaPer[besar].map(function (w) { return { id: w.id, nama: w.nama, nik: w.nik, alamat: w.alamat, hadir: w._hadir, nilai: w._nilai }; });
       validasiPekerja(p, rows, ctx, { lama: ctx.pekerjaPer[besar] }); h.validasi_poktan_terbesar_ms = jam(); h.poktan_terbesar = besar + ' (' + rows.length + ' pekerja)';
     }
     env.lock(function () { return 1; }); h.kunci_ms = jam();
@@ -1060,7 +1084,7 @@ var HOK = (function () {
         pekerjaBaru.push({ id: id + '-O' + ('000' + (i + 1)).slice(-4) + env.uuid().slice(0, 4).toUpperCase(), id_poktan: id, kab: kab, nama: s(w.nama), nik: s(w.nik), alamat: s(w.alamat),
           hadir: (w.hadir || []).filter(isISO).sort().join(','), diubah: waktuJakarta(env), oleh: user.nama + ' (impor)', jenis: 'olah' });
       });
-      // kehadiran dari Excel v2 (satu periode) dimasukkan sebagai pengolahan lahan; daftar penanaman tidak disentuh
+      // kehadiran dari Excel v2 (satu periode) dimasukkan sebagai pengolahan tanah; daftar penanaman tidak disentuh
       var hapus = ctx.pekerja.filter(function (w) { return gantiPoktan[w.id_poktan] && jenisW(w) === 'olah'; }).map(function (w) { return w.id; });
       if (poktanBaru.length) env.store.upsert('POKTAN', poktanBaru);
       if (hapus.length) env.store.remove('PEKERJA', hapus);
@@ -1254,7 +1278,7 @@ var HOK = (function () {
     FIELD_TANGGAL: FIELD_TANGGAL, MIME_OK: MIME_OK,
     handle: handle, salinDariLama: salinDariLama, JENIS: JENIS, DAFTAR_JENIS: DAFTAR_JENIS, periode: periode, jenisW: jenisW, ukurKecepatan: ukurKecepatan, setupAwal: setupAwal, pindaiDokumen: pindaiDokumen, buatPengguna: buatPengguna,
     // dipakai juga di browser untuk validasi langsung
-    cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, r3: r3, JENIS_KEL: JENIS_KEL, DAFTAR_JENIS_KEL: DAFTAR_JENIS_KEL, jenisKel: jenisKel, npwpAn: npwpAn, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
+    cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, r3: r3, hokW: hokW, parseHadir: parseHadir, parseNilai: parseNilai, teksHadir: teksHadir, nilaiSah: nilaiSah, JENIS_KEL: JENIS_KEL, DAFTAR_JENIS_KEL: DAFTAR_JENIS_KEL, jenisKel: jenisKel, npwpAn: npwpAn, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
     namaFolder: namaFolder, validasiPoktan: validasiPoktan, validasiPekerja: validasiPekerja, sha256: sha256, hashKode: hashKode,
     settingObj: settingObj, by: by, tglPendek: tglPendek, rp: rp
   };

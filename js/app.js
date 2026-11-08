@@ -1,9 +1,9 @@
-/* Sistem HOK Tebu 15 + 25 (pengolahan lahan + penanaman) – aplikasi halaman tunggal */
+/* Sistem HOK Tebu 15 + 25 (pengolahan tanah + penanaman) – aplikasi halaman tunggal */
 (function () {
   'use strict';
   var CFG = window.HOK_CONFIG || {}, e = U.esc;
   var PROSES = {}, ANTRE = { p: Promise.resolve(), n: 0, ok: 0 };
-  var S = { boot: null, detail: null, berkas: null, kotor: false, lastHash: '', filter: { kab: '', keg: '', status: '', q: '' }, hadir: null, temFilter: { kab: '', jenis: '', q: '' } };
+  var S = { nilaiKlik: 1, boot: null, detail: null, berkas: null, kotor: false, lastHash: '', filter: { kab: '', keg: '', status: '', q: '' }, hadir: null, temFilter: { kab: '', jenis: '', q: '' } };
 
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -102,8 +102,8 @@
   // ------------------------------------------------------------------ masuk
   function viewMasuk() {
     app().innerHTML = '<div class="masuk"><section class="kiri"><div style="display:grid;gap:6px"><div class="t1">KEMENTERIAN PERTANIAN · DITJEN PERKEBUNAN</div><div style="color:#C9D9EE">' + e(CFG.UNIT || '') + '</div></div>' +
-      '<div style="display:grid;gap:18px"><span class="skema">SKEMA 15 + 25 HOK · PENGOLAHAN LAHAN + PENANAMAN</span><h1>' + e(CFG.NAMA || 'Sistem HOK Tebu') + '</h1><p>Input HOK per kabupaten, validasi langsung saat disimpan, dan pemantauan provinsi serta pusat dari satu tempat.</p>' +
-      '<ol><li><b>01</b>Kabupaten mengisi poktan, pekerja dan kehadiran harian: pengolahan lahan 15 HOK/ha dan penanaman 25 HOK/ha</li><li><b>02</b>Sistem menolak NIK salah, tanggal tidak berurutan, HOK melebihi target dan hari ganda</li><li><b>03</b>Provinsi dan pusat memantau progres, dokumen dan temuan tanpa menunggu kiriman file</li></ol></div>' +
+      '<div style="display:grid;gap:18px"><span class="skema">SKEMA 15 + 25 HOK · PENGOLAHAN TANAH + PENANAMAN</span><h1>' + e(CFG.NAMA || 'Sistem HOK Tebu') + '</h1><p>Input HOK per kabupaten, validasi langsung saat disimpan, dan pemantauan provinsi serta pusat dari satu tempat.</p>' +
+      '<ol><li><b>01</b>Kabupaten mengisi poktan, pekerja dan kehadiran harian: pengolahan tanah 15 HOK/ha dan penanaman 25 HOK/ha</li><li><b>02</b>Sistem menolak NIK salah, tanggal tidak berurutan, HOK melebihi target dan hari ganda</li><li><b>03</b>Provinsi dan pusat memantau progres, dokumen dan temuan tanpa menunggu kiriman file</li></ol></div>' +
       '<div style="color:#C9D9EE;font-size:13px">Uji coba: D.I. Yogyakarta · Kulon Progo, Gunungkidul, Bantul, Sleman</div></section>' +
       '<section class="kanan"><form id="f-masuk" autocomplete="off"><div style="display:grid;gap:6px"><h2 style="font-size:24px">Masuk · Sistem HOK 15 + 25</h2><p class="muted">Gunakan kode akses <b>khusus sistem 15 + 25</b> dari Tim Evaluasi dan Pelaporan (berbeda dengan kode sistem HOK 40). Kode menentukan wilayah yang bisa Anda lihat.</p></div>' +
       '<div class="fld"><label for="kode">Kode akses</label><input id="kode" type="password" autocomplete="off" spellcheck="false" placeholder="mis. BTL-XXXX-XXXX" required><span class="bantu">Tidak membedakan huruf besar dan kecil.</span></div>' +
@@ -342,7 +342,7 @@
       ['no_cpcl', 'No. SK CPCL'], ['tgl_cpcl', 'Tgl SK CPCL', 'date'], ['no_spk', 'No. SPK'], ['tgl_spk', 'Tgl SPK', 'date', 'setelah DIPA dan SK CPCL'],
       ['tempat_spk', 'SPK bertempat di'], ['jalan_spk', 'Jalan tempat SPK'], ['spk_sd', 'SPK berlaku s.d.', 'date'], ['tgl_sptjm', 'Tgl SPTJM', 'date', 'sama/setelah SPK'],
       ['tgl_rukk', 'Tgl RUKK', 'date', 'sama/setelah SPK, sebelum mulai'], ['mulai', 'Tgl mulai pekerjaan (SPK)', 'date', 'setelah tanggal SPK'], ['selesai', 'Tgl selesai pekerjaan (SPK)', 'date', 'dalam masa berlaku SPK; juga akhir penanaman'],
-      ['mulai_olah', 'Tgl mulai pengolahan lahan', 'date', 'awal daftar hadir pengolahan (15 HOK/ha)'], ['selesai_olah', 'Tgl selesai pengolahan lahan', 'date', 'akhir daftar hadir pengolahan'],
+      ['mulai_olah', 'Tgl mulai pengolahan tanah', 'date', 'awal daftar hadir pengolahan (15 HOK/ha)'], ['selesai_olah', 'Tgl selesai pengolahan tanah', 'date', 'akhir daftar hadir pengolahan'],
       ['mulai_tanam', 'Tgl mulai penanaman', 'date', 'awal daftar hadir penanaman (25 HOK/ha); boleh tumpang tindih dengan pengolahan'],
       ['tgl_lap', 'Tgl laporan pelaksanaan', 'date'], ['no_bap', 'No. BA Pemeriksaan'], ['tgl_bap', 'Tgl BA Pemeriksaan', 'date'], ['no_bast', 'No. BAST'], ['tgl_bast', 'Tgl BAST', 'date'],
       ['no_kw', 'No. Kwitansi'], ['tgl_kw', 'Tgl Kwitansi', 'date'], ['tgl_tt', 'Tgl tanda terima upah pekerja', 'date']]],
@@ -351,7 +351,7 @@
 
   function ctxLokal(pekerjaDetail) {
     var b = S.boot, pekerjaPer = {};
-    if (pekerjaDetail && S.detail) pekerjaPer[S.detail.poktan.id] = pekerjaDetail.map(function (w) { return { id: w.id, nik: w.nik, _hadir: w.hadir, jenis: w.jenis }; });
+    if (pekerjaDetail && S.detail) pekerjaPer[S.detail.poktan.id] = pekerjaDetail.map(function (w) { return { id: w.id, nik: w.nik, _hadir: w.hadir, _nilai: w.nilai || {}, jenis: w.jenis }; });
     return { setting: b.setting, kabBy: b.kabBy, provBy: b.provBy, poktan: b.poktan, poktanBy: b.poktanBy, pekerja: [], pekerjaPer: pekerjaPer };
   }
 
@@ -391,7 +391,7 @@
       };
       var periksa = function () {
         var o = baca(), pek = baru ? [] : d.pekerja;
-        var hasil = HOK.validasiPoktan(o, ctxLokal(pek), { pekerja: pek.map(function (w) { return { _hadir: w.hadir, jenis: w.jenis }; }) });
+        var hasil = HOK.validasiPoktan(o, ctxLokal(pek), { pekerja: pek.map(function (w) { return { _hadir: w.hadir, _nilai: w.nilai || {}, jenis: w.jenis }; }) });
         $$('.fld[data-f]', form).forEach(function (fl) { fl.classList.remove('salah'); $('.pesan', fl).textContent = ''; $('.pesan', fl).className = 'pesan'; });
         hasil.forEach(function (x) {
           var fl = $('.fld[data-f="' + x.field + '"]', form);
@@ -457,7 +457,7 @@
       render('poktan', head + pilihJenis + '<div class="info">Isi <b>tanggal mulai dan selesai pekerjaan (SPK)</b> serta tanggal <b>' + lblJ + '</b> di tab <a href="#/poktan/' + encodeURIComponent(p.id) + '/data">Data poktan</a> sebelum mengisi kehadiran ' + lblJ + '.</div>', pasangPilih);
       return;
     }
-    if (!S.hadir || S.hadir.jenis !== J) S.hadir = { jenis: J, rows: d.pekerja.filter(function (w) { return w.jenis === J; }).map(function (w) { return { id: w.id, nama: w.nama, nik: w.nik, alamat: w.alamat || '', hadir: w.hadir.slice() }; }), hal: 0, serverErr: null };
+    if (!S.hadir || S.hadir.jenis !== J) S.hadir = { jenis: J, rows: d.pekerja.filter(function (w) { return w.jenis === J; }).map(function (w) { return { id: w.id, nama: w.nama, nik: w.nik, alamat: w.alamat || '', hadir: w.hadir.slice(), nilai: Object.assign({}, w.nilai || {}) }; }), hal: 0, serverErr: null };
     var H = S.hadir;
     var nHari = Math.max(1, HOK.hari(akhirH) - HOK.hari(awalH) + 1);
     var maxHal = Math.max(0, Math.ceil(nHari / HARI_PER_LAYAR) - 1);
@@ -467,10 +467,11 @@
       '<div class="grid2"><div class="utama"><section class="panel" style="padding:0;overflow:hidden">' +
       '<div style="padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)">' +
       '<div class="baris"><button class="btn kecil" id="hal-prev" aria-label="Periode sebelumnya">‹</button><b id="hal-label" class="num"></b><button class="btn kecil" id="hal-next" aria-label="Periode berikutnya">›</button></div>' +
+      (tulis ? '<div class="baris nilai-klik" role="group" aria-label="Nilai HOK saat kotak diklik"><span class="kecil muted">Nilai klik:</span>' + ['1', '0.75', '0.5', '0.25'].map(function (x) { return '<button type="button" class="btn kecil' + (Number(x) === S.nilaiKlik ? ' aktif' : '') + '" data-nk="' + x + '">' + U.angka(Number(x)) + '</button>'; }).join('') + '<input id="nk-lain" inputmode="decimal" placeholder="lain, mis. 0,76" aria-label="Nilai HOK lain" value="' + ([1, 0.75, 0.5, 0.25].indexOf(S.nilaiKlik) < 0 ? U.angka(S.nilaiKlik) : '') + '"></div>' : '') +
       (tulis ? '<div class="baris">' + (d.pekerja.some(function (w) { return w.jenis === JL; }) ? '<button class="btn kecil" id="btn-salin-jenis">Salin nama dari ' + HOK.JENIS[JL].label.toLowerCase() + '</button>' : '') + '<button class="btn kecil" id="btn-tempel">Tempel daftar pekerja</button><button class="btn kecil" id="btn-tambah">Tambah pekerja</button></div>' : '') + '</div>' +
       '<div class="hadir-wrap"><table class="hadir" id="tbl-hadir"></table></div>' +
-      '<div style="padding:10px 14px;border-top:1px solid var(--line)" class="legenda"><span><i style="background:var(--green)"></i>Hadir (1 HOK)</span><span><i style="background:var(--crit)"></i>Bentrok: NIK sama sudah hadir di poktan lain / di luar aturan</span><span><i style="box-shadow:inset 0 0 0 2px var(--crit);background:#F6F8FC"></i>NIK ini sudah hadir di poktan lain atau di ' + HOK.JENIS[JL].label.toLowerCase() + ' pada tanggal itu</span><span><i style="background:#E2E7EF"></i>Di luar masa ' + lblJ + '</span>' +
-      (tulis ? '<span>Klik tanggal di kepala kolom untuk menandai semua pekerja.</span>' : '') + '</div></section></div>' +
+      '<div style="padding:10px 14px;border-top:1px solid var(--line)" class="legenda"><span><i style="background:var(--green)"></i>Hadir 1 HOK</span><span><i style="background:var(--green-soft);box-shadow:inset 0 0 0 1px var(--green)"></i>Hadir sebagian (mis. 0,5 HOK)</span><span><i style="background:var(--crit)"></i>Bentrok: NIK sama sudah hadir di poktan lain / di luar aturan</span><span><i style="box-shadow:inset 0 0 0 2px var(--crit);background:#F6F8FC"></i>NIK ini sudah hadir di poktan lain atau di ' + HOK.JENIS[JL].label.toLowerCase() + ' pada tanggal itu</span><span><i style="background:#E2E7EF"></i>Di luar masa ' + lblJ + '</span>' +
+      (tulis ? '<span>Pilih <b>Nilai klik</b> (1, 0,75, 0,5, 0,25 atau isi sendiri, mis. 0,76) lalu klik kotak. Klik kotak berisi nilai lain untuk menggantinya; klik lagi untuk mengosongkan. Klik tanggal di kepala kolom untuk menandai semua pekerja.</span>' : '') + '</div></section></div>' +
       '<aside class="samping"><div class="panel" style="display:flex;flex-direction:column;gap:10px"><div class="kecil muted" style="font-weight:600;letter-spacing:.08em">HOK ' + JN.judul + '</div>' +
       '<div><span id="sum-hok" style="font-family:var(--f-disp);font-weight:600;font-size:40px;line-height:1"></span> <span class="muted" id="sum-target"></span></div><div class="bar" style="height:8px"><i id="sum-bar"></i></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px"><div><div class="muted">Sisa HOK</div><b id="sum-sisa"></b></div><div><div class="muted">Realisasi biaya</div><b id="sum-rp"></b></div><div><div class="muted">Upah/HOK</div><b>' + U.rp(p.hit.upah) + '</b></div><div><div class="muted">Pekerja</div><b id="sum-pek"></b></div></div></div>' +
@@ -482,6 +483,14 @@
       $('#hal-prev').onclick = function () { if (H.hal > 0) { H.hal--; gambarHadir(); } };
       $('#hal-next').onclick = function () { if (H.hal < maxHal) { H.hal++; gambarHadir(); } };
       if (!tulis) return;
+      $$('.nilai-klik [data-nk]').forEach(function (bt) { bt.onclick = function () { S.nilaiKlik = Number(bt.dataset.nk); $('#nk-lain').value = ''; $$('.nilai-klik [data-nk]').forEach(function (x) { x.classList.toggle('aktif', x === bt); }); }; });
+      $('#nk-lain').onchange = function () {
+        var v = HOK.r3(HOK.num(this.value));
+        if (!this.value.trim()) return;
+        if (!HOK.nilaiSah(v)) { U.toast('Nilai HOK harus lebih dari 0 dan paling banyak 1 (maks. 3 angka di belakang koma)', true); this.value = ''; return; }
+        S.nilaiKlik = v; this.value = U.angka(v); $$('.nilai-klik [data-nk]').forEach(function (x) { x.classList.toggle('aktif', Number(x.dataset.nk) === v); });
+        U.toast('Klik kotak kehadiran untuk mengisi ' + U.angka(v) + ' HOK');
+      };
       $('#btn-tambah').onclick = function () { H.rows.push({ id: '', nama: '', nik: '', alamat: p.desa ? 'Desa ' + p.desa : '', hadir: [] }); ubah(); gambarHadir(); var ins = $$('#tbl-hadir input[data-k="nama"]'); if (ins.length) ins[ins.length - 1].focus(); };
       $('#btn-tempel').onclick = dialogTempel;
       if ($('#btn-salin-jenis')) $('#btn-salin-jenis').onclick = function () {
@@ -492,6 +501,15 @@
       $('#btn-simpan-hadir').onclick = simpanHadir;
     });
 
+    // nilai HOK satu kotak (bawaan 1) dan aturan klik: kosong → isi nilai klik; berisi nilai lain → ganti; berisi nilai sama → kosongkan
+    function nilaiSel(w, t) { var v = (w.nilai || {})[t]; return v === undefined || v === '' ? 1 : Number(v); }
+    function aturSel(w, t) {
+      w.nilai = w.nilai || {};
+      var k = w.hadir.indexOf(t), nk = S.nilaiKlik || 1;
+      if (k >= 0 && nilaiSel(w, t) === nk) { w.hadir.splice(k, 1); delete w.nilai[t]; return; }
+      if (k < 0) { w.hadir.push(t); w.hadir.sort(); }
+      if (nk === 1) delete w.nilai[t]; else w.nilai[t] = nk;
+    }
     function ubah() { S.kotor = true; H.serverErr = null; var st = $('#status-hadir'); if (st) st.textContent = 'Belum disimpan'; }
 
     function validasi() {
@@ -522,7 +540,7 @@
       var html = '<thead><tr><th class="kiri">Pekerja · NIK · alamat</th>' + tgl.map(function (t) {
         var dow = U.namaHari(t).slice(0, 3), merah = U.namaHari(t) === 'Minggu' ? ' minggu-merah' : '';
         return '<th>' + (tulis ? '<button type="button" class="kol" data-tgl="' + t + '" title="Tandai/hapus semua pekerja pada ' + U.tgl(t) + '">' : '') + '<span class="' + merah + '">' + dow + '</span><br><b style="font-size:12px">' + t.slice(8) + '</b><br>' + U.BULAN[Number(t.slice(5, 7)) - 1].slice(0, 3) + (tulis ? '</button>' : '') + '</th>';
-      }).join('') + '<th>Hari</th>' + (tulis ? '<th><span class="sr">Aksi</span></th>' : '') + '</tr></thead><tbody>';
+      }).join('') + '<th>HOK</th>' + (tulis ? '<th><span class="sr">Aksi</span></th>' : '') + '</tr></thead><tbody>';
       if (!H.rows.length) html += '<tr><td colspan="' + (tgl.length + 3) + '" class="kosong">Belum ada pekerja. ' + (tulis ? 'Klik <b>Tambah pekerja</b> atau <b>Tempel daftar pekerja</b>.' : '') + '</td></tr>';
       H.rows.forEach(function (w, i) {
         var set = {}; w.hadir.forEach(function (x) { set[x] = 1; });
@@ -534,18 +552,18 @@
           (errRow[i] ? '<div class="pesan-baris">' + e(errRow[i].join('; ')) + '</div>' : '') + (warnRow[i] ? '<div class="pesan-baris w">' + e(warnRow[i].join('; ')) + '</div>' : '') + '</td>' +
           tgl.map(function (t) {
             var on = !!set[t], bentrok = errTgl[i + '|' + t], lain = lainSet[t];
-            return '<td><button type="button" class="sel' + (bentrok ? ' bentrok' : '') + (!on && lain ? ' bentrok-lain' : '') + '" data-i="' + i + '" data-t="' + t + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Hadir' : 'Tidak hadir') + ' ' + U.tgl(t) + '"' + (lain ? ' title="Hadir di ' + e(lain) + '"' : '') + dis + '>' + (on ? '1' : '') + '</button></td>';
-          }).join('') + '<td class="num"><b>' + w.hadir.length + '</b></td>' + (tulis ? '<td><button type="button" class="btn kecil bahaya" data-hapus="' + i + '" aria-label="Hapus pekerja ' + (i + 1) + '">Hapus</button></td>' : '') + '</tr>';
+            return '<td><button type="button" class="sel' + (on && nilaiSel(w, t) < 1 ? ' pecahan' : '') + (bentrok ? ' bentrok' : '') + (!on && lain ? ' bentrok-lain' : '') + '" data-i="' + i + '" data-t="' + t + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Hadir' : 'Tidak hadir') + ' ' + U.tgl(t) + '"' + (lain ? ' title="Hadir di ' + e(lain) + '"' : '') + dis + '>' + (on ? U.angka(nilaiSel(w, t)) : '') + '</button></td>';
+          }).join('') + '<td class="num"><b>' + U.angka(HOK.hokW(w)) + '</b></td>' + (tulis ? '<td><button type="button" class="btn kecil bahaya" data-hapus="' + i + '" aria-label="Hapus pekerja ' + (i + 1) + '">Hapus</button></td>' : '') + '</tr>';
       });
       html += '</tbody>';
       $('#tbl-hadir').innerHTML = html;
       ringkasHadir(v);
       if (!tulis) return;
-      $$('#tbl-hadir .sel').forEach(function (b) { b.onclick = function () { var w = H.rows[+b.dataset.i], t = b.dataset.t, k = w.hadir.indexOf(t); if (k >= 0) w.hadir.splice(k, 1); else { w.hadir.push(t); w.hadir.sort(); } ubah(); gambarHadir(); }; });
+      $$('#tbl-hadir .sel').forEach(function (b) { b.onclick = function () { aturSel(H.rows[+b.dataset.i], b.dataset.t); ubah(); gambarHadir(); }; });
       $$('#tbl-hadir button.kol').forEach(function (b) {
         b.onclick = function () {
           var t = b.dataset.tgl, semua = H.rows.length && H.rows.every(function (w) { return w.hadir.indexOf(t) >= 0; });
-          H.rows.forEach(function (w) { var k = w.hadir.indexOf(t); if (semua && k >= 0) w.hadir.splice(k, 1); if (!semua && k < 0) { w.hadir.push(t); w.hadir.sort(); } });
+          H.rows.forEach(function (w) { var k = w.hadir.indexOf(t); if (semua && k >= 0) { w.hadir.splice(k, 1); delete (w.nilai || {})[t]; } if (!semua && k < 0) aturSel(w, t); });
           ubah(); gambarHadir();
         };
       });
@@ -885,7 +903,7 @@
       '<div class="baris" style="margin-top:12px"><button class="btn utama" id="kd-simpan" type="button">Ganti kode akses saya</button></div></section>';
     if (u.peran === 'pusat') {
       isi += '<section class="panel"><div class="panel-h"><h2>Pengaturan umum</h2></div><form id="f-set" class="form-grid">' +
-        [['tahun', 'Tahun anggaran'], ['no_dipa', 'Nomor DIPA'], ['tgl_dipa', 'Tanggal DIPA', 'date'], ['kpa', 'Pemberi dana (kwitansi)'], ['hokha_olah', 'HOK/ha pengolahan lahan (bawaan 15)'], ['hokha_tanam', 'HOK/ha penanaman (bawaan 25)'], ['batas_hari_bulan', 'Batas hari kerja per pekerja per bulan (kosong = tidak dibatasi)'], ['batas_hari_spk', 'Batas lama pekerjaan SPK, hari (kosong = tidak dibatasi)'], ['unit_pusat', 'Unit pengelola']].map(function (f) {
+        [['tahun', 'Tahun anggaran'], ['no_dipa', 'Nomor DIPA'], ['tgl_dipa', 'Tanggal DIPA', 'date'], ['kpa', 'Pemberi dana (kwitansi)'], ['hokha_olah', 'HOK/ha pengolahan tanah (bawaan 15)'], ['hokha_tanam', 'HOK/ha penanaman (bawaan 25)'], ['batas_hari_bulan', 'Batas hari kerja per pekerja per bulan (kosong = tidak dibatasi)'], ['batas_hari_spk', 'Batas lama pekerjaan SPK, hari (kosong = tidak dibatasi)'], ['unit_pusat', 'Unit pengelola']].map(function (f) {
           return '<div class="fld"><label for="s-' + f[0] + '">' + f[1] + '</label><input id="s-' + f[0] + '" name="' + f[0] + '" type="' + (f[2] || 'text') + '" value="' + e(st[f[0]] || '') + '"></div>';
         }).join('') + '</form>' +
         '<h3 style="margin:16px 0 8px">Standar upah HOK per provinsi (Rp/HOK)</h3><div class="tbl-wrap"><table class="t"><thead><tr><th>Provinsi</th><th>Kode</th><th>Perluasan</th><th>Bongkar Ratoon</th></tr></thead><tbody>' +

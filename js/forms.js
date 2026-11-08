@@ -28,7 +28,7 @@ var FORM = (function () {
   // tanggal pelaksanaan = rentang hadir sebenarnya (sama untuk target dan realisasi)
   function tglPelaksanaan(p, j) { var h = p.hit || {}, pr = j ? HOK.periode(p, j) : { awal: p.mulai, akhir: p.selesai }; return U.rentang(h.hadirAwal || pr.awal, h.hadirAkhir || pr.akhir); }
 
-  // salinan data form untuk satu jenis pekerjaan (olah = pengolahan lahan, tanam = penanaman):
+  // salinan data form untuk satu jenis pekerjaan (olah = pengolahan tanah, tanam = penanaman):
   // pekerja, target/realisasi HOK, foto geotag dan judul jenis pekerjaan disesuaikan
   function untukJenis(F, j) {
     var p = F.p, h = p.hit || {}, pj = (h.per || {})[j] || { tHOK: 0, rHOK: 0, nPek: 0 }, JJ = HOK.JENIS[j], foto = {};
@@ -80,7 +80,7 @@ var FORM = (function () {
       ['Berita Acara Pemeriksaan Hasil Pekerjaan oleh Tim Teknis', F.p.no_bap && F.p.tgl_bap, ''],
       ['BAST Petani ke PPK', F.p.no_bast && F.p.tgl_bast, 'Mencantumkan nominal biaya HOK'],
       ['Bukti Pembayaran Petani (tanda terima pekerja)', F.p.tgl_tt, ''],
-      ['Foto/Dokumentasi Kegiatan Geotagging (sebelum, proses, sesudah)', (d.geo || []).length >= HOK.SLOT.geo.length, 'pengolahan lahan dan penanaman, masing-masing 0%, 50%, 100%'],
+      ['Foto/Dokumentasi Kegiatan Geotagging (sebelum, proses, sesudah)', (d.geo || []).length >= HOK.SLOT.geo.length, 'pengolahan tanah dan penanaman, masing-masing 0%, 50%, 100%'],
       ['Kwitansi Pembayaran ke Petani', F.p.tgl_kw, ''],
       ['Foto KTP Petani Pekerja', h.dok && h.dok.ktp >= h.nPek && h.nPek > 0, (h.dok ? h.dok.ktp : 0) + ' dari ' + h.nPek + ' pekerja'],
       ['List Data ' + JK(F).label + ' (alamat sesuai buku rekening)', F.p.norek && F.p.desa, 'Rekap per kabupaten (F13)']
@@ -99,7 +99,7 @@ var FORM = (function () {
       ['Ruang Lingkup', '<p>Ruang Lingkup SPK ini meliputi:</p><ol class="huruf"><li>Hak dan Kewajiban Pihak Kesatu dan Pihak Kedua;</li><li>Jenis dan jangka waktu pekerjaan;</li><li>Sumber dan jumlah dana;</li><li>Mekanisme pembayaran;</li><li>Monitoring dan evaluasi.</li></ol>'],
       ['Hak dan Kewajiban', '<ol class="pasal"><li>Pihak Kesatu mempunyai hak dan kewajiban sebagai berikut:<ol class="huruf"><li>mengawasi dan memeriksa pekerjaan yang dilaksanakan oleh Pihak Kedua;</li><li>meminta laporan-laporan mengenai pelaksanaan pekerjaan yang dilakukan oleh Pihak Kedua;</li><li>memberikan fasilitas berupa koordinasi dengan Dinas dan instansi terkait yang dibutuhkan oleh Pihak Kedua untuk pelaksanaan pekerjaan sesuai ketentuan dalam SPK;</li><li>membayar pekerjaan sesuai dengan ketentuan yang tercantum dalam SPK.</li></ol></li>' +
         '<li>Pihak Kedua mempunyai hak dan kewajiban sebagai berikut:<ol class="huruf"><li>menerima pembayaran untuk pelaksanaan pekerjaan sesuai ketentuan yang tercantum dalam SPK;</li><li>melaporkan pelaksanaan pekerjaan kepada Pihak Kesatu;</li><li>melaksanakan dan menyelesaikan pekerjaan sesuai dengan jadwal pelaksanaan pekerjaan yang telah ditetapkan dalam SPK;</li><li>memberikan keterangan-keterangan yang diperlukan oleh Pihak Kesatu;</li><li>menyerahkan hasil pekerjaan sesuai dengan jadwal penyerahan pekerjaan yang telah ditetapkan dalam SPK;</li><li>mengambil langkah-langkah yang cukup memadai untuk melindungi lingkungan tempat kerja dan membatasi perusakan dan gangguan kepada masyarakat maupun miliknya akibat kegiatan Pihak Kedua;</li><li>mengembalikan dana Bantuan Pemerintah ke kas negara jika terdapat sisa dana yang tidak digunakan.</li></ol></li></ol>'],
-      ['Jenis dan Jangka Waktu Pekerjaan', '<ol class="pasal"><li>Jenis pekerjaan meliputi pengolahan lahan (' + h.hok.olah + ' HOK/ha) dan penanaman (' + h.hok.tanam + ' HOK/ha).</li><li>SPK ini berlaku sejak tanggal ' + U.tgl(p.tgl_spk) + ' sampai dengan tanggal ' + U.tgl(p.spk_sd) + '.</li></ol>'],
+      ['Jenis dan Jangka Waktu Pekerjaan', '<ol class="pasal"><li>Jenis pekerjaan meliputi pengolahan tanah (' + h.hok.olah + ' HOK/ha) dan penanaman (' + h.hok.tanam + ' HOK/ha).</li><li>SPK ini berlaku sejak tanggal ' + U.tgl(p.tgl_spk) + ' sampai dengan tanggal ' + U.tgl(p.spk_sd) + '.</li></ol>'],
       ['Sumber dan Jumlah Dana', '<ol class="pasal"><li>Sumber dana berasal dari Daftar Isian Pelaksanaan Anggaran (DIPA) Tahun Anggaran ' + e(F.setting.tahun) + ', Nomor: ' + isi(F.setting.no_dipa) + ' tanggal ' + U.tgl(F.setting.tgl_dipa) + '.</li><li>Jumlah dana untuk melaksanakan kegiatan sebagaimana yang disepakati dalam SPK sebesar ' + U.rp(h.tBiaya) + ' (' + U.terbilang(h.tBiaya) + ' rupiah) untuk ' + U.angka(h.tHOK) + ' Hari Orang Kerja (HOK), terdiri atas ' + rincianHOK(h, 'tHOK') + '.</li></ol>'],
       ['Mekanisme Pembayaran', '<ol class="pasal"><li>Pembayaran ' + k.biaya + ' dilakukan Sesuai Progres Pekerjaan.</li><li>Pembayaran dilakukan melalui Nomor Rekening ' + isi(p.norek) + ' ' + isi(p.bank, '') + ' a.n. ' + isi(p.namarek) + '.</li></ol>'],
       ['Monitoring dan Evaluasi', '<p class="rata">Pihak Kesatu mempunyai kewenangan sepenuhnya untuk melaksanakan pengawasan dan evaluasi terhadap seluruh kegiatan pelaksanaan dari Perjanjian Kerja Sama yang dilakukan oleh Pihak Kedua.</p>'],
@@ -171,11 +171,11 @@ var FORM = (function () {
           '<table class="bingkai kecil"><tr><th rowspan="2" style="width:3%">NO</th><th rowspan="2" style="width:17%">NAMA LENGKAP</th><th rowspan="2" style="width:13%">NIK</th><th colspan="' + HARI + '">WAKTU PELAKSANAAN PEKERJAAN</th><th rowspan="2" style="width:5%">TOTAL HARI</th></tr><tr>' +
           tgl.map(function (d) { return '<th>' + (d ? U.namaHari(d).slice(0, 3) + '<br>' + d.slice(8) + '/' + d.slice(5, 7) : '') + '</th>'; }).join('') + '</tr>' +
           rows.map(function (w, i) {
-            var set = {}; w.hadir.forEach(function (x) { set[x] = 1; });
-            var tot = tgl.filter(function (d) { return d && set[d]; }).length;
-            return '<tr><td class="c">' + (b * BARIS + i + 1) + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td>' + tgl.map(function (d) { return '<td class="c">' + (d && set[d] ? '√' : '') + '</td>'; }).join('') + '<td class="c tebal">' + tot + '</td></tr>';
+            var set = {}, nl = w.nilai || {}; w.hadir.forEach(function (x) { set[x] = nl[x] !== undefined ? Number(nl[x]) : 1; });
+            var tot = HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; });
+            return '<tr><td class="c">' + (b * BARIS + i + 1) + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td>' + tgl.map(function (d) { return '<td class="c">' + (d && set[d] ? (set[d] === 1 ? '√' : U.angka(set[d])) : '') + '</td>'; }).join('') + '<td class="c tebal">' + U.angka(tot) + '</td></tr>';
           }).join('') +
-          (b === nHal - 1 ? '<tr><td colspan="' + (3 + HARI) + '" class="c tebal">JUMLAH HOK PERIODE INI</td><td class="c tebal">' + pek.reduce(function (s, w) { return s + w.hadir.filter(function (x) { return tgl.indexOf(x) >= 0; }).length; }, 0) + '</td></tr>' : '') +
+          (b === nHal - 1 ? '<tr><td colspan="' + (3 + HARI) + '" class="c tebal">JUMLAH HOK PERIODE INI</td><td class="c tebal">' + U.angka(HOK.r3(pek.reduce(function (s, w) { return s + HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; }); }, 0))) + '</td></tr>' : '') +
           '</table>' + ttdTimKetua(F, tgl.filter(Boolean).slice(-1)[0]) + '</div>';
       }
     }
@@ -229,7 +229,7 @@ var FORM = (function () {
   function F09(F) {
     var pek = F.pekerja, upah = F.p.hit.upah, BARIS = 25, nHal = Math.max(1, Math.ceil(pek.length / BARIS)), out = '';
     var totH = 0, totR = 0;
-    pek.forEach(function (w) { totH += w.hadir.length; totR += w.hadir.length * upah; });
+    pek.forEach(function (w) { totH = HOK.r3(totH + HOK.hokW(w)); totR = HOK.r3(totR + HOK.hokW(w) * upah); });
     for (var b = 0; b < nHal; b++) {
       var rows = pek.slice(b * BARIS, (b + 1) * BARIS);
       out += '<div class="hal">' + kopWilayah(F, 'TANDA TERIMA PEMBAYARAN') + '<div class="jarak"></div>' +
@@ -237,7 +237,7 @@ var FORM = (function () {
         '<table class="bingkai kecil"><tr><th style="width:5%">NO</th><th>NAMA LENGKAP</th><th style="width:19%">NIK</th><th style="width:9%">TOTAL HADIR (HARI)</th><th style="width:12%">UPAH KERJA PER HARI (Rp)</th><th style="width:14%">JUMLAH UPAH DITERIMA (Rp)</th><th colspan="2" style="width:20%">TANDA TANGAN</th></tr>' +
         rows.map(function (w, i) {
           var no = b * BARIS + i + 1, ttdKiri = no % 2 === 1;
-          return '<tr style="height:20pt"><td class="c">' + no + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td><td class="c">' + w.hadir.length + '</td><td class="r">' + U.angka(upah) + '</td><td class="r">' + U.angka(w.hadir.length * upah) + '</td>' +
+          return '<tr style="height:20pt"><td class="c">' + no + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td><td class="c">' + U.angka(HOK.hokW(w)) + '</td><td class="r">' + U.angka(upah) + '</td><td class="r">' + U.angka(HOK.r3(HOK.hokW(w) * upah)) + '</td>' +
             '<td>' + (ttdKiri ? no + '. ……………' : '') + '</td><td>' + (ttdKiri ? '' : no + '. ……………') + '</td></tr>';
         }).join('') +
         (b === nHal - 1 ? '<tr><td colspan="3" class="c tebal">JUMLAH</td><td class="c tebal">' + totH + '</td><td></td><td class="r tebal">' + U.angka(totR) + '</td><td colspan="2"></td></tr>' : '') +
@@ -303,7 +303,7 @@ var FORM = (function () {
   }
   function F14(F) {
     var p = F.p, daftar = fotoKtpPekerja(F), out = '', PER = 8;
-    // F14a/F14b: judul menyebut tahap pekerjaan (pengolahan lahan / penanaman)
+    // F14a/F14b: judul menyebut tahap pekerjaan (pengolahan tanah / penanaman)
     var kepala = judulBlok(['DOKUMENTASI', 'KTP PENERIMA PETANI PEKERJA KEGIATAN' + (F.jenis ? ' ' + HOK.JENIS[F.jenis].judul : ''), e(String(F.keg.nama).toUpperCase()) + ' TAHUN ANGGARAN ' + e(F.setting.tahun || '2026'), e(lembaga(p.poktan, p.jenis_kel).toUpperCase())]);
     if (!daftar.length) return '<div class="hal">' + kepala + '<p>Belum ada pekerja di daftar hadir' + (F.jenis ? ' ' + HOK.JENIS[F.jenis].label.toLowerCase() : '') + '.</p></div>';
     for (var i = 0; i < daftar.length; i += PER) {
@@ -335,18 +335,18 @@ var FORM = (function () {
     ['F01', 'Surat Perjanjian Kerjasama (SPK)', F01],
     ['F02', 'SPTJM', F02],
     ['F03', 'RUKK', F03],
-    ['F05a', 'Daftar hadir pengolahan lahan', function (F) { return F05(untukJenis(F, 'olah')); }],
+    ['F05a', 'Daftar hadir pengolahan tanah', function (F) { return F05(untukJenis(F, 'olah')); }],
     ['F05b', 'Daftar hadir penanaman', function (F) { return F05(untukJenis(F, 'tanam')); }],
     ['F06', 'Laporan pelaksanaan kegiatan', F06],
     ['F07', 'Berita acara pemeriksaan', F07],
     ['F08', 'BAST poktan ke PPK', F08],
-    ['F09a', 'Tanda terima upah pengolahan lahan', function (F) { return F09(untukJenis(F, 'olah')); }],
+    ['F09a', 'Tanda terima upah pengolahan tanah', function (F) { return F09(untukJenis(F, 'olah')); }],
     ['F09b', 'Tanda terima upah penanaman', function (F) { return F09(untukJenis(F, 'tanam')); }],
-    ['F10a', 'Dokumentasi foto geotag pengolahan lahan', function (F) { return F10(untukJenis(F, 'olah')); }],
+    ['F10a', 'Dokumentasi foto geotag pengolahan tanah', function (F) { return F10(untukJenis(F, 'olah')); }],
     ['F10b', 'Dokumentasi foto geotag penanaman', function (F) { return F10(untukJenis(F, 'tanam')); }],
     ['F11', 'Kwitansi', F11],
     ['F12', 'Foto KTP ketua, buku rekening & NPWP', F12],
-    ['F14a', 'Dokumentasi KTP petani pekerja pengolahan lahan (8 per halaman)', function (F) { return F14(untukJenis(F, 'olah')); }],
+    ['F14a', 'Dokumentasi KTP petani pekerja pengolahan tanah (8 per halaman)', function (F) { return F14(untukJenis(F, 'olah')); }],
     ['F14b', 'Dokumentasi KTP petani pekerja penanaman (8 per halaman)', function (F) { return F14(untukJenis(F, 'tanam')); }]
   ];
 
