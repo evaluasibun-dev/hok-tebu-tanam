@@ -156,26 +156,35 @@ var FORM = (function () {
     if (h.hadirAkhir && h.hadirAkhir > akhir) akhir = h.hadirAkhir;
     return { mulai: m0, akhir: akhir, jumlah: HOK.hari(akhir) - HOK.hari(m0) + 1 };
   }
+  // tanggal yang dicetak di daftar hadir: hanya hari yang ada kehadirannya (hari jeda tidak dimunculkan).
+  // Bila belum ada kehadiran sama sekali, seluruh periode dicetak sebagai blanko.
+  function tglCetakHadir(F) {
+    var per = periodeHadir(F); if (!per) return null;
+    var ada = {};
+    (F.pekerja || []).forEach(function (w) { (w.hadir || []).forEach(function (x) { if (HOK.hokW({ hadir: [x], nilai: w.nilai }) > 0) ada[x] = 1; }); });
+    var t = Object.keys(ada).sort();
+    if (!t.length) for (var i = 0; i < per.jumlah; i++) t.push(U.tambahHari(per.mulai, i));
+    return t;
+  }
   function F05(F) {
-    var per = periodeHadir(F), out = '';
-    if (!per) return '<div class="hal"><p>Isi tanggal ' + e(F.keg.jenis.toLowerCase()) + ' terlebih dahulu.</p></div>';
-    var HARI = 15, BARIS = 20, pek = F.pekerja, nPer = Math.ceil(per.jumlah / HARI), nHal = Math.max(1, Math.ceil(pek.length / BARIS));
+    var semua = tglCetakHadir(F), out = '';
+    if (!semua) return '<div class="hal"><p>Isi tanggal ' + e(F.keg.jenis.toLowerCase()) + ' terlebih dahulu.</p></div>';
+    var HARI = 15, BARIS = 20, pek = F.pekerja, nPer = Math.max(1, Math.ceil(semua.length / HARI)), nHal = Math.max(1, Math.ceil(pek.length / BARIS));
     for (var a = 0; a < nPer; a++) {
-      var tgl = [];
-      for (var k = 0; k < HARI; k++) { var di = a * HARI + k; tgl.push(di < per.jumlah ? U.tambahHari(per.mulai, di) : null); }
+      var tgl = semua.slice(a * HARI, (a + 1) * HARI), nT = tgl.length; // hanya hari yang ada; tanpa kolom kosong
       for (var b = 0; b < nHal; b++) {
         var rows = pek.slice(b * BARIS, (b + 1) * BARIS);
         out += '<div class="hal lanskap">' + kopWilayah(F, 'DAFTAR HADIR') +
           '<table class="kv" style="margin-top:4pt"><tr><td class="l" style="width:16%">' + JK(F).besar + '</td><td class="t">:</td><td style="width:34%">' + isi(F.p.poktan) + '</td><td class="l" style="width:16%">JENIS PEKERJAAN</td><td class="t">:</td><td>' + e(F.keg.jenis) + '</td></tr>' +
           '<tr><td class="l">DESA / KECAMATAN</td><td class="t">:</td><td>' + isi(F.p.desa) + ' / ' + isi(F.p.kec) + '</td><td class="l">LUAS AREA</td><td class="t">:</td><td>' + luasTeks(F.p.luas) + ' · periode ' + (a + 1) + '/' + nPer + (nHal > 1 ? ' · halaman ' + (b + 1) + '/' + nHal : '') + '</td></tr></table>' +
-          '<table class="bingkai kecil"><tr><th rowspan="2" style="width:3%">NO</th><th rowspan="2" style="width:17%">NAMA LENGKAP</th><th rowspan="2" style="width:13%">NIK</th><th colspan="' + HARI + '">WAKTU PELAKSANAAN PEKERJAAN</th><th rowspan="2" style="width:5%">TOTAL HARI</th></tr><tr>' +
+          '<table class="bingkai kecil"><tr><th rowspan="2" style="width:3%">NO</th><th rowspan="2" style="width:17%">NAMA LENGKAP</th><th rowspan="2" style="width:13%">NIK</th><th colspan="' + nT + '">WAKTU PELAKSANAAN PEKERJAAN</th><th rowspan="2" style="width:5%">TOTAL HARI</th></tr><tr>' +
           tgl.map(function (d) { return '<th>' + (d ? U.namaHari(d).slice(0, 3) + '<br>' + d.slice(8) + '/' + d.slice(5, 7) : '') + '</th>'; }).join('') + '</tr>' +
           rows.map(function (w, i) {
             var set = {}, nl = w.nilai || {}; w.hadir.forEach(function (x) { set[x] = nl[x] !== undefined ? Number(nl[x]) : 1; });
             var tot = HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; });
             return '<tr><td class="c">' + (b * BARIS + i + 1) + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td>' + tgl.map(function (d) { return '<td class="c">' + (d && set[d] ? (set[d] === 1 ? '√' : U.angka(set[d])) : '') + '</td>'; }).join('') + '<td class="c tebal">' + U.angka(tot) + '</td></tr>';
           }).join('') +
-          (b === nHal - 1 ? '<tr><td colspan="' + (3 + HARI) + '" class="c tebal">JUMLAH HOK PERIODE INI</td><td class="c tebal">' + U.angka(HOK.r3(pek.reduce(function (s, w) { return s + HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; }); }, 0))) + '</td></tr>' : '') +
+          (b === nHal - 1 ? '<tr><td colspan="' + (3 + nT) + '" class="c tebal">JUMLAH HOK PERIODE INI</td><td class="c tebal">' + U.angka(HOK.r3(pek.reduce(function (s, w) { return s + HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; }); }, 0))) + '</td></tr>' : '') +
           '</table>' + ttdTimKetua(F, tgl.filter(Boolean).slice(-1)[0]) + '</div>';
       }
     }
@@ -365,5 +374,5 @@ var FORM = (function () {
     });
   }
 
-  return { JK: JK, sebutanDaftar: sebutanDaftar, untukJenis: untukJenis, fotoKtpPekerja: fotoKtpPekerja, npwpTeks: npwpTeks, lembaga: lembaga, lembagaKalimat: lembagaKalimat, tglPelaksanaan: tglPelaksanaan, DAFTAR: DAFTAR, F13: F13, cetakHTML: cetakHTML, F: (function () { var o = {}; DAFTAR.forEach(function (d) { o[d[0]] = d[2]; }); return o; })() };
+  return { tglCetakHadir: tglCetakHadir, JK: JK, sebutanDaftar: sebutanDaftar, untukJenis: untukJenis, fotoKtpPekerja: fotoKtpPekerja, npwpTeks: npwpTeks, lembaga: lembaga, lembagaKalimat: lembagaKalimat, tglPelaksanaan: tglPelaksanaan, DAFTAR: DAFTAR, F13: F13, cetakHTML: cetakHTML, F: (function () { var o = {}; DAFTAR.forEach(function (d) { o[d[0]] = d[2]; }); return o; })() };
 })();

@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.2.2';
+  var VERSI = '2.2.3';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {

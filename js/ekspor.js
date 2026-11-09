@@ -324,13 +324,12 @@ var EKSPOR = (function () {
     return { mulai: m0, jumlah: HOK.hari(akhir) - HOK.hari(m0) + 1 };
   }
   function xF05(wb, F, nv) {
-    var per = periode(F), HARI = 15, pek = F.pekerja || [];
+    var semua = FORM.tglCetakHadir(F), HARI = 15, pek = F.pekerja || [];
     var namaJ = F.jenis === 'tanam' ? 'Penanaman' : 'Pengolahan';
-    if (!per) { var w0 = lembar(wb, 'Hadir ' + namaJ, [60], true); sel(w0, 'A1', 'Isi tanggal ' + F.keg.jenis.toLowerCase() + ' terlebih dahulu.'); return; }
-    var nPer = Math.ceil(per.jumlah / HARI);
+    if (!semua) { var w0 = lembar(wb, 'Hadir ' + namaJ, [60], true); sel(w0, 'A1', 'Isi tanggal ' + F.keg.jenis.toLowerCase() + ' terlebih dahulu.'); return; }
+    var nPer = Math.max(1, Math.ceil(semua.length / HARI));
     for (var a = 0; a < nPer; a++) {
-      var tgl = [];
-      for (var k = 0; k < HARI && a * HARI + k < per.jumlah; k++) tgl.push(U.tambahHari(per.mulai, a * HARI + k));
+      var tgl = semua.slice(a * HARI, (a + 1) * HARI);
       var n = tgl.length, nKol = 3 + n + 1;
       var ws = lembar(wb, 'Hadir ' + namaJ + (nPer > 1 ? ' ' + (a + 1) : ''), [5, 26, 20].concat(tgl.map(function () { return 6.5; })).concat([10]), true);
       var r = judulLembar(ws, ['DAFTAR HADIR', nv.judul, wilayah(F, nv), 'TAHUN ANGGARAN ' + nv.tahun + (nPer > 1 ? ' · PERIODE ' + (a + 1) + '/' + nPer : '')], nKol);
