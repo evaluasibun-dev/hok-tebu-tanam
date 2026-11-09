@@ -348,7 +348,7 @@ var EKSPOR = (function () {
         var set = {}, nl = w.nilai || {}; (w.hadir || []).forEach(function (x) { set[x] = nl[x] !== undefined ? Number(nl[x]) : 1; });
         sel(ws, 'A' + r, i + 1, { h: 'center', border: true, kecil: true }); sel(ws, 'B' + r, w.nama, { border: true, kecil: true });
         sel(ws, 'C' + r, String(w.nik), { border: true, kecil: true, fmt: '@' });
-        tgl.forEach(function (d, j) { sel(ws, kol(4 + j) + r, set[d] ? set[d] : null, { h: 'center', border: true, kecil: true }); });
+        tgl.forEach(function (d, j) { sel(ws, kol(4 + j) + r, set[d] ? set[d] : null, { h: 'center', border: true, kecil: true, fmt: '[=1]"√";General' }); }); // nilai tetap angka (TOTAL = SUM), tampil √ untuk hadir penuh
         sel(ws, kol(nKol) + r, { formula: 'SUM(D' + r + ':' + kol(3 + n) + r + ')', result: HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; }) }, { h: 'center', border: true, bold: true, kecil: true });
         r++;
       });
