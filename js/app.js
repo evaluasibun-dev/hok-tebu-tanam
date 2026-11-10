@@ -173,7 +173,7 @@
     urut = urut.filter(function (w) { return w.kurang; }).sort(function (a, c) { return (c.kurang / c.n - a.kurang / a.n) || (c.kurang - a.kurang); });
     var labelW = S.boot.user.peran === 'kabupaten' ? 'Per kecamatan' : 'Per kabupaten';
     var nKritis = bl.filter(function (p) { return p.hit.kurang.persen < 50; }).length;
-    return '<div class="grid2"><section class="panel" style="flex:1 1 460px"><div class="panel-h"><h2>Kekurangan per jenis dokumen</h2><span class="kecil muted">jumlah kelompok yang kurang</span></div>' +
+    return '<div class="grid2 rata"><section class="panel" style="flex:1 1 460px"><div class="panel-h"><h2>Kekurangan per jenis dokumen</h2><span class="kecil muted">jumlah kelompok yang kurang</span></div>' +
       perKat.map(function (x) { return '<div class="tahap-baris"><span>' + e(x.nama) + '</span><div class="t"><i style="width:' + (x.n / bl.length * 100).toFixed(1) + '%"></i></div><span class="n num"><b>' + x.n + '</b> kel.</span></div>'; }).join('') + '</section>' +
       '<section class="panel" style="flex:1 1 460px"><div class="panel-h"><h2>' + labelW + '</h2><span class="kecil muted">kelompok belum lengkap / jumlah kelompok</span></div>' +
       urut.slice(0, 10).map(function (w) { var r = w.kurang / w.n; return '<div class="tahap-baris"><span>' + e(w.nama) + '</span><div class="t"><i style="width:' + (r * 100).toFixed(0) + '%;background:' + (r >= 0.75 ? 'var(--crit)' : 'var(--gold)') + '"></i></div><span class="n num"><b>' + w.kurang + '</b> / ' + w.n + '</span></div>'; }).join('') + '</section></div>' +
@@ -282,7 +282,7 @@
       kpi('HOK masuk', U.angka(t.rHOK || 0), '/ ' + U.angka(t.tHOK || 0), t.tHOK ? t.rHOK / t.tHOK * 100 : 0, 'pengolahan ' + U.angka(t.rOlah || 0) + '/' + U.angka(t.tOlah || 0) + ' · penanaman ' + U.angka(t.rTanam || 0) + '/' + U.angka(t.tTanam || 0)) +
       kpi('Realisasi biaya', 'Rp' + U.singkat(t.rBiaya || 0), '', t.tBiaya ? t.rBiaya / t.tBiaya * 100 : 0, 'dari nilai SPK ' + U.rp(t.tBiaya || 0)) +
       kpi('Poktan dengan temuan', nPoktanTemuan, 'poktan', null, (t.potensi ? 'potensi kelebihan bayar ' + U.rp(t.potensi) : 'tidak ada potensi kelebihan bayar'), nPoktanTemuan > 0) + '</section>' +
-      '<div class="grid2"><section class="panel" style="flex:1 1 380px"><div class="panel-h"><h2>Tahapan dokumen poktan</h2><span class="kecil muted">dari ' + r.jumlahPoktan + ' poktan</span></div>' +
+      '<div class="grid2 rata"><section class="panel" style="flex:1 1 380px"><div class="panel-h"><h2>Tahapan dokumen poktan</h2><span class="kecil muted">dari ' + r.jumlahPoktan + ' poktan</span></div>' +
       [1, 2, 3, 4, 5].map(function (i) { var n = r.tahap[i]; return '<div class="tahap-baris"><span>' + namaTahap[i] + '</span><div class="t"><i style="width:' + (r.jumlahPoktan ? n / r.jumlahPoktan * 100 : 0) + '%"></i></div><span class="n num"><b>' + n + '</b> · ' + U.persen(n, r.jumlahPoktan) + '</span></div>'; }).join('') + '</section>' +
       '<section class="panel" style="flex:1 1 520px"><div class="panel-h"><h2>HOK masuk per minggu</h2><span class="kecil muted">dari tanggal hadir pekerja, minggu mulai Senin</span></div>' +
       (minggu.length ? '<div class="minggu">' + minggu.map(function (m) { return '<div title="Minggu ' + U.tglPendek(m.minggu) + ': ' + m.hok + ' HOK"><span class="num">' + U.angka(m.hok) + '</span><i style="height:' + (m.hok / maks * 100) + '%"></i></div>'; }).join('') + '</div>' +
