@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.2.3';
+  var VERSI = '2.3.0';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -280,6 +280,51 @@ var HOK = (function () {
       persen: butuh ? Math.round(ada / butuh * 100) : 0, ada: ada, butuh: butuh, lengkap: ada === butuh && nPek > 0 };
   }
 
+  // ------------------------------------------------------------------ pengingat kelengkapan (kategori sama dengan HOK Pantau)
+  // Tanggal pengingat: target semua kelompok lengkap dan batas akhir input (input tidak dikunci setelahnya)
+  var PENGINGAT = { mulai: '2026-11-01', pengingat: '2026-11-15', target: '2026-11-30', akhir: '2026-12-08' };
+  var KAT_KURANG = [['data', 'Data poktan & rekening', 'data'], ['spk', 'SPK & tanggal', 'data'], ['hok', 'Kehadiran (HOK)', 'hadir'],
+    ['idn', 'KTP ketua & NPWP', 'dokumen'], ['rek', 'Buku rekening', 'dokumen'], ['geo', 'Foto geotag', 'dokumen'], ['ktp', 'KTP pekerja', 'dokumen'],
+    ['ttd', 'Dokumen bertanda tangan', 'dokumen'], ['akhir', 'BAP, BAST, kwitansi', 'data']];
+  var F_KURANG_DATA = ['poktan', 'ketua', 'nik_ketua', 'desa', 'kec', 'bank', 'norek', 'namarek', 'luas', 'no_cpcl', 'tgl_cpcl'];
+  var F_KURANG_SPK = ['no_spk', 'tgl_spk', 'mulai', 'selesai', 'mulai_olah', 'selesai_olah', 'mulai_tanam'];
+  var LABEL_FIELD_KURANG = {
+    poktan: 'Nama kelompok', ketua: 'Nama ketua', nik_ketua: 'NIK ketua', desa: 'Desa', kec: 'Kecamatan', bank: 'Nama bank', norek: 'Nomor rekening',
+    namarek: 'Nama di rekening', luas: 'Luas target', no_cpcl: 'Nomor SK CPCL', tgl_cpcl: 'Tanggal SK CPCL', no_spk: 'Nomor SPK', tgl_spk: 'Tanggal SPK',
+    mulai: 'Tgl mulai pekerjaan', selesai: 'Tgl selesai pekerjaan', mulai_olah: 'Tgl mulai pengolahan tanah', selesai_olah: 'Tgl selesai pengolahan tanah', mulai_tanam: 'Tgl mulai penanaman'
+  };
+  function labelKurang(kode) {
+    var a = kode.split(':'), g = a[0], k = a[1];
+    if (g === 'data' || g === 'spk') return LABEL_FIELD_KURANG[k] || k;
+    if (g === 'hok') return k === 'pekerja' ? 'Belum ada pekerja / kehadiran' : k === 'olah' ? 'HOK pengolahan tanah belum mencapai target' : k === 'tanam' ? 'HOK penanaman belum mencapai target' : 'HOK belum mencapai target';
+    if (g === 'akhir') return k === 'bap' ? 'Tanggal BA Pemeriksaan' : k === 'bast' ? 'Tanggal BAST' : 'Kwitansi (nomor/tanggal)';
+    var x = (SLOT[g] || []).filter(function (y) { return y[0] === k; })[0];
+    return (g === 'rek' ? 'Buku rekening · ' : g === 'geo' ? 'Geotag ' : '') + (x ? x[1] : k);
+  }
+  // daftar kekurangan satu poktan; KTP pekerja dihitung per NIK (ketua yang ikut bekerja boleh memakai KTP ketua)
+  function kekurangan(p, h, pek) {
+    var k = [], d = parseJSON(p.dok, null) || {};
+    F_KURANG_DATA.forEach(function (f) { if (!s(p[f])) k.push('data:' + f); });
+    F_KURANG_SPK.forEach(function (f) { if (!s(p[f])) k.push('spk:' + f); });
+    var nHok = 2;
+    if (!h.nPek) k.push('hok:pekerja');
+    else { ['olah', 'tanam'].forEach(function (j) { var q = h.per[j]; if (!q.tHOK || q.rHOK < r3(q.tHOK)) k.push('hok:' + j); }); }
+    ['idn', 'rek', 'geo', 'ttd'].forEach(function (g) { SLOT[g].forEach(function (x) { if ((d[g] || []).indexOf(x[0]) < 0) k.push(g + ':' + x[0]); }); });
+    if (!isISO(s(p.tgl_bap))) k.push('akhir:bap');
+    if (!isISO(s(p.tgl_bast))) k.push('akhir:bast');
+    if (!(s(p.no_kw) || isISO(s(p.tgl_kw)))) k.push('akhir:kw');
+    var ktpNik = (d.ktp || []).map(function (n) { return String(n).slice(0, 16); }), ktpKetua = (d.idn || []).indexOf('ktp_ketua') >= 0;
+    var sudah = {}, belum = [];
+    (pek || []).forEach(function (w) {
+      var nik = s(w.nik); if (!nik || sudah[nik]) return; sudah[nik] = 1;
+      if (ktpNik.indexOf(nik) < 0 && !(ktpKetua && nik === s(p.nik_ketua))) belum.push(s(w.nama) || nik.slice(0, 4) + '…');
+    });
+    var butuh = F_KURANG_DATA.length + F_KURANG_SPK.length + nHok + SLOT.idn.length + SLOT.rek.length + SLOT.geo.length + SLOT.ttd.length + 3 + Math.max(1, Object.keys(sudah).length);
+    var n = k.length + belum.length;
+    return { kode: k, kKtp: belum.length, ktpBelum: belum.slice(0, 40), n: n, butuh: butuh, persen: Math.max(0, Math.round((butuh - n) / butuh * 100)), lengkap: n === 0 };
+  }
+  function kategoriKurang(kode) { return kode.split(':')[0]; }
+
   // ------------------------------------------------------------------ validasi poktan
   function validasiPoktan(p, ctx, opsi) {
     opsi = opsi || {};
@@ -533,6 +578,7 @@ var HOK = (function () {
         tahap: st, namaTahap: NAMA_TAHAP[st], hadirAwal: minD, hadirAkhir: maxD, potensi: potensi, nTemuan: nTem, dok: dok,
         status: nTem ? 'Ada temuan' : (st === 5 && dok.lengkap ? 'Lengkap & sesuai' : (st >= 1 ? 'Berjalan' : 'Belum mulai'))
       };
+      hasil[p.id].kurang = kekurangan(p, hasil[p.id], pek);
     });
     return { per: hasil, temuan: temuan };
   }
@@ -1280,7 +1326,8 @@ var HOK = (function () {
     // dipakai juga di browser untuk validasi langsung
     cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, r3: r3, hokW: hokW, parseHadir: parseHadir, parseNilai: parseNilai, teksHadir: teksHadir, nilaiSah: nilaiSah, JENIS_KEL: JENIS_KEL, DAFTAR_JENIS_KEL: DAFTAR_JENIS_KEL, jenisKel: jenisKel, npwpAn: npwpAn, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
     namaFolder: namaFolder, validasiPoktan: validasiPoktan, validasiPekerja: validasiPekerja, sha256: sha256, hashKode: hashKode,
-    settingObj: settingObj, by: by, tglPendek: tglPendek, rp: rp
+    settingObj: settingObj, by: by, tglPendek: tglPendek, rp: rp,
+    PENGINGAT: PENGINGAT, KAT_KURANG: KAT_KURANG, labelKurang: labelKurang, kategoriKurang: kategoriKurang
   };
 })();
 

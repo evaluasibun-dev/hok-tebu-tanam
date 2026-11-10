@@ -88,12 +88,13 @@
     var nav = [['dashboard', 'Dashboard'], ['poktan', 'Poktan'], ['temuan', 'Temuan' + (nTem ? ' (' + nTem + ')' : '')], ['pengaturan', 'Pengaturan']];
     var wilayah = u.peran === 'pusat' ? 'Pusat' : u.peran === 'provinsi' ? 'Provinsi ' + u.provinsi : 'Kabupaten ' + u.kab;
     return (API.demo ? '<div class="demo-pita"><b>Mode demo.</b> Data contoh fiktif, tersimpan hanya di browser ini dan hilang saat halaman dimuat ulang.</div>' : '') +
-      '<header class="top"><div class="top-in"><div class="merek"><b>HOK Tebu ' + e(S.boot.setting.tahun) + '</b><span class="skema-kecil">15 + 25</span><span class="pill biru">' + e(wilayah) + '</span></div>' +
+      '<header class="top"><div class="top-in"><div class="merek"><span role="img" aria-label="Ikon HOK 15 + 25" style="display:flex"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#1D4E89"/><path d="M20 54 L23 12" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/><path d="M16.5 24 h9 M15.8 35 h9 M15 46 h9" stroke="#1D4E89" stroke-width="2.4" stroke-linecap="round"/><path d="M22.5 20 C 26 14, 30 10, 34 9 C 31 13, 27 17, 23 22 Z" fill="#CFE8B0"/><text x="45" y="31" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="19" fill="#FFFFFF">15</text><rect x="35" y="35" width="20" height="2.5" rx="1.2" fill="#FFFFFF"/><text x="45" y="55" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="19" fill="#FFFFFF">25</text></svg></span><b>HOK Tebu ' + e(S.boot.setting.tahun) + '</b><span class="skema-kecil">15 + 25</span><span class="pill biru">' + e(wilayah) + '</span></div>' +
       '<nav class="nav" aria-label="Menu utama">' + nav.map(function (n) { return '<a href="#/' + n[0] + '" class="' + (aktif === n[0] ? 'aktif' : '') + '">' + e(n[1]) + '</a>'; }).join('') + '</nav>' +
-      '<div class="akun"><span>' + e(u.nama) + '</span><button class="btn kecil" id="btn-segar" title="Ambil data terbaru dari server">Muat ulang</button><button class="btn kecil" id="btn-keluar">Keluar</button></div></div></header>' +
+      '<div class="akun">' + (function () { var nB = belumLengkap().length; return nB ? '<button class="btn kecil lonceng ' + fase().k + '" id="btn-ingat" type="button" aria-label="Pengingat: ' + nB + ' kelompok belum lengkap" title="Pengingat kelengkapan dokumen"><svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="jml">' + nB + '</span></button>' : ''; })() + '<span>' + e(u.nama) + '</span><button class="btn kecil" id="btn-segar" title="Ambil data terbaru dari server">Muat ulang</button><button class="btn kecil" id="btn-keluar">Keluar</button></div></div></header>' +
       '<main class="isi">' + isi + '</main>';
   }
   function pasangShell() {
+    if ($('#btn-ingat')) $('#btn-ingat').onclick = dialogPengingat;
     $('#btn-keluar').onclick = function () { if (S.kotor && !confirm('Ada perubahan yang belum disimpan. Tetap keluar?')) return; S.kotor = false; API.keluar(); S.boot = null; location.hash = '#/masuk'; viewMasuk(); };
     $('#btn-segar').onclick = function () { pastikanBoot(true).then(function (ok) { if (ok) { S.detail = null; route(); U.toast('Data diperbarui'); } }); };
   }
@@ -117,10 +118,146 @@
       API.masuk($('#kode').value).then(function (r) {
         btn.disabled = false; btn.textContent = 'Masuk';
         if (!r.ok) { $('#masuk-galat').innerHTML = galat(r); return; }
+        try { sessionStorage.setItem('hok_ingat', '1'); } catch (x) { /* abaikan */ }
         S.boot = null; location.hash = '#/dashboard'; route();
       });
     };
     $('#kode').focus();
+  }
+
+  // ------------------------------------------------------------------ pengingat kelengkapan dokumen
+  var IG = HOK.PENGINGAT;
+  function tglPanjang(d) { var p = d.split('-'); return Number(p[2]) + ' ' + HOK.BULAN[Number(p[1]) - 1] + ' ' + p[0]; }
+  function selisih(a, b) { return HOK.hari(b) - HOK.hari(a); }
+  function belumLengkap() {
+    return S.boot.poktan.filter(function (p) { return p.hit && p.hit.kurang && p.hit.kurang.n > 0; })
+      .sort(function (a, c) { return (a.hit.kurang.persen - c.hit.kurang.persen) || (c.hit.kurang.n - a.hit.kurang.n); });
+  }
+  function fase() {
+    var t = S.boot.hariIni, k30 = selisih(t, IG.target), k8 = selisih(t, IG.akhir);
+    var nB = belumLengkap().length, nS = S.boot.poktan.length;
+    var akhirTeks = 'Batas akhir input ' + tglPanjang(IG.akhir) + (k8 > 0 ? ' (' + k8 + ' hari lagi)' : '') + '.';
+    if (!nB) return { k: 'beres', angka: '✓', satuan: 'semua lengkap', eyebrow: 'Kelengkapan dokumen', judul: nS ? 'Semua kelompok sudah lengkap' : 'Belum ada kelompok', teks: nS ? 'Terima kasih. Seluruh isian, kehadiran dan berkas ' + nS + ' kelompok sudah lengkap.' : 'Tambahkan poktan terlebih dahulu.' };
+    if (k30 > 15) return { k: 'awal', angka: k30, satuan: 'hari lagi', eyebrow: 'Target lengkap ' + tglPanjang(IG.target).replace(/ \d{4}$/, ''), judul: 'Segera lengkapi input dokumen kelompok',
+      teks: 'Seluruh isian, kehadiran dan berkas kelompok ditargetkan lengkap pada ' + tglPanjang(IG.target) + '. ' + akhirTeks + ' ' + nB + ' dari ' + nS + ' kelompok masih memiliki kekurangan.' };
+    if (k30 >= 0) return { k: 'dekat', angka: k30, satuan: k30 ? 'hari lagi' : 'hari ini', eyebrow: 'Target lengkap ' + tglPanjang(IG.target).replace(/ \d{4}$/, ''), judul: 'Akhir November sudah dekat',
+      teks: (k30 ? 'Target dokumen lengkap tinggal ' + k30 + ' hari. ' : 'Hari ini batas target dokumen lengkap. ') + 'Prioritaskan kelompok dengan kelengkapan di bawah 50%. ' + akhirTeks + ' ' + nB + ' kelompok belum lengkap.' };
+    if (k8 >= 0) return { k: 'kritis', angka: k8, satuan: k8 ? 'hari lagi' : 'hari terakhir', eyebrow: 'Batas akhir ' + tglPanjang(IG.akhir).replace(/ \d{4}$/, ''), judul: 'Batas akhir input dokumen: ' + tglPanjang(IG.akhir),
+      teks: 'Target ' + tglPanjang(IG.target).replace(/ \d{4}$/, '') + ' sudah terlewat. Lengkapi kekurangan ' + nB + ' kelompok sebelum ' + tglPanjang(IG.akhir) + '; kekurangan yang tersisa tetap terpantau di HOK Pantau.' };
+    return { k: 'lewat', angka: -k8, satuan: 'hari terlambat', eyebrow: 'Lewat batas ' + tglPanjang(IG.akhir).replace(/ \d{4}$/, ''), judul: 'Batas akhir input dokumen sudah lewat',
+      teks: 'Input tetap bisa dilakukan, tetapi ' + nB + ' kelompok masih belum lengkap dan kekurangannya terpantau di HOK Pantau. Selesaikan kekurangannya secepatnya.' };
+  }
+  function garisWaktu() {
+    var a = HOK.hari(IG.mulai), z = HOK.hari(IG.akhir) + 1, pos = function (d) { return Math.max(0, Math.min(100, (HOK.hari(d) - a) / (z - a) * 100)); };
+    var tanda = [[IG.mulai, 'mulai', 'awal'], [IG.pengingat, 'pengingat', 'awal'], [IG.target, 'target lengkap', 'tengah'], [IG.akhir, 'batas akhir', 'akhir']];
+    return '<div class="ig-garis" aria-hidden="true"><div class="ig-rel"></div><div class="ig-isi" style="width:' + pos(S.boot.hariIni).toFixed(1) + '%"></div>' +
+      tanda.map(function (t, i) { return '<div class="ig-tanda ' + t[2] + (i === 3 ? ' merah' : '') + '" style="left:' + pos(t[0]).toFixed(1) + '%"><i></i><span><b>' + U.tglPendek(t[0]).replace(/ \d{4}$/, '') + '</b>' + (i ? '<br>' + t[1] : '') + '</span></div>'; }).join('') +
+      '<div class="ig-kini" style="left:' + pos(S.boot.hariIni).toFixed(1) + '%"></div></div>';
+  }
+  function bannerPengingat() {
+    var f = fase(), nB = belumLengkap().length;
+    return '<section class="ig ig-' + f.k + '" aria-label="Pengingat kelengkapan dokumen"><div class="ig-angka"><span class="ig-eb">' + e(f.eyebrow) + '</span><b class="num">' + e(String(f.angka)) + '</b><span>' + e(f.satuan) + '</span></div>' +
+      '<div class="ig-teks"><h2>' + e(f.judul) + '</h2><p>' + e(f.teks) + '</p>' + garisWaktu() + '</div>' +
+      (nB ? '<div class="ig-aksi"><a class="btn ig-utama" href="#ingat-daftar">Lihat ' + nB + ' kelompok belum lengkap</a><button class="btn" id="ig-unduh" type="button">Unduh daftar kekurangan (Excel)</button></div>' : '') + '</section>';
+  }
+  function wilayahKurang(p) { return S.boot.user.peran === 'kabupaten' ? (p.kec || '–') : p.kab; }
+  function sectionPengingat() {
+    var bl = belumLengkap(), semua = S.boot.poktan;
+    if (!bl.length) return '';
+    var perKat = HOK.KAT_KURANG.map(function (k) {
+      var n = bl.filter(function (p) { var q = p.hit.kurang; return k[0] === 'ktp' ? q.kKtp > 0 : q.kode.some(function (c) { return HOK.kategoriKurang(c) === k[0]; }); }).length;
+      return { nama: k[1], n: n };
+    }).filter(function (x) { return x.n; }).sort(function (a, c) { return c.n - a.n; });
+    var wil = {}, urut = [];
+    semua.forEach(function (p) { var w = wilayahKurang(p); if (!wil[w]) { wil[w] = { nama: w, n: 0, kurang: 0 }; urut.push(wil[w]); } wil[w].n++; if (p.hit.kurang && p.hit.kurang.n) wil[w].kurang++; });
+    urut = urut.filter(function (w) { return w.kurang; }).sort(function (a, c) { return (c.kurang / c.n - a.kurang / a.n) || (c.kurang - a.kurang); });
+    var labelW = S.boot.user.peran === 'kabupaten' ? 'Per kecamatan' : 'Per kabupaten';
+    var nKritis = bl.filter(function (p) { return p.hit.kurang.persen < 50; }).length;
+    return '<div class="grid2"><section class="panel" style="flex:1 1 460px"><div class="panel-h"><h2>Kekurangan per jenis dokumen</h2><span class="kecil muted">jumlah kelompok yang kurang</span></div>' +
+      perKat.map(function (x) { return '<div class="tahap-baris"><span>' + e(x.nama) + '</span><div class="t"><i style="width:' + (x.n / bl.length * 100).toFixed(1) + '%"></i></div><span class="n num"><b>' + x.n + '</b> kel.</span></div>'; }).join('') + '</section>' +
+      '<section class="panel" style="flex:1 1 460px"><div class="panel-h"><h2>' + labelW + '</h2><span class="kecil muted">kelompok belum lengkap / jumlah kelompok</span></div>' +
+      urut.slice(0, 10).map(function (w) { var r = w.kurang / w.n; return '<div class="tahap-baris"><span>' + e(w.nama) + '</span><div class="t"><i style="width:' + (r * 100).toFixed(0) + '%;background:' + (r >= 0.75 ? 'var(--crit)' : 'var(--gold)') + '"></i></div><span class="n num"><b>' + w.kurang + '</b> / ' + w.n + '</span></div>'; }).join('') + '</section></div>' +
+      '<section class="panel" id="ingat-daftar" style="padding:0;overflow:hidden"><div class="panel-h" style="padding:14px 18px 0"><div><h2>Kelompok yang belum lengkap</h2><span class="kecil muted">diurutkan dari kelengkapan terendah · klik Lengkapi untuk membuka daftar kekurangan kelompok</span></div>' +
+      '<div class="baris"><button type="button" class="btn kecil ig-saring aktif" data-sr="semua">Semua (' + bl.length + ')</button><button type="button" class="btn kecil ig-saring" data-sr="kritis">Kelengkapan di bawah 50% (' + nKritis + ')</button>' +
+      (urut.length > 1 ? '<label class="sr" for="ig-wil">' + labelW + '</label><select id="ig-wil"><option value="">' + (S.boot.user.peran === 'kabupaten' ? 'Semua kecamatan' : 'Semua kabupaten') + '</option>' + urut.map(function (w) { return '<option>' + e(w.nama) + '</option>'; }).join('') + '</select>' : '') + '</div></div>' +
+      '<div style="overflow-x:auto"><table class="t" style="min-width:980px"><thead><tr><th>Kelompok</th><th>' + (S.boot.user.peran === 'kabupaten' ? 'Kecamatan' : 'Kabupaten · Kec.') + '</th><th style="width:160px">Kelengkapan</th><th>Kekurangan</th><th class="r">Aksi</th></tr></thead><tbody id="ig-tb"></tbody></table></div>' +
+      '<div class="kecil muted" id="ig-kaki" style="padding:12px 18px;border-top:1px solid var(--line)"></div></section>';
+  }
+  function chipKurang(q, maks) {
+    var lbl = q.kode.map(HOK.labelKurang);
+    if (q.kKtp) lbl.splice(0, 0, 'KTP ' + q.kKtp + ' pekerja');
+    return '<div class="ig-chips"><b>' + q.n + ' item</b>' + lbl.slice(0, maks).map(function (t) { return '<span>' + e(t) + '</span>'; }).join('') + (lbl.length > maks ? '<em>+' + (lbl.length - maks) + ' lainnya</em>' : '') + '</div>';
+  }
+  function warnaPersen(x) { return x < 50 ? 'var(--crit)' : x < 80 ? 'var(--warn)' : 'var(--good)'; }
+  function pasangPengingat() {
+    if ($('#ig-unduh')) $('#ig-unduh').onclick = unduhKurang;
+    if (!$('#ig-tb')) return;
+    var st = { sr: 'semua', wil: '', semua: false };
+    var isi = function () {
+      var rows = belumLengkap().filter(function (p) { return (st.sr !== 'kritis' || p.hit.kurang.persen < 50) && (!st.wil || wilayahKurang(p) === st.wil); });
+      var tampil = st.semua ? rows : rows.slice(0, 10);
+      $('#ig-tb').innerHTML = tampil.map(function (p) {
+        var q = p.hit.kurang;
+        return '<tr><td><b>' + e(p.poktan) + '</b><div class="kecil muted">' + e(HOK.jenisKel(p).nama || p.jenis_kel || 'Kelompok Tani') + ' · ' + e(p.id) + '</div></td>' +
+          '<td>' + (S.boot.user.peran === 'kabupaten' ? e(p.kec || '–') : e(p.kab) + '<div class="kecil muted">' + e(p.kec || '') + '</div>') + '</td>' +
+          '<td><b class="num" style="color:' + warnaPersen(q.persen) + '">' + q.persen + '%</b><div class="bar"><i style="width:' + q.persen + '%;background:' + warnaPersen(q.persen) + '"></i></div></td>' +
+          '<td>' + chipKurang(q, 3) + '</td><td class="r"><a class="btn kecil" href="#/poktan/' + encodeURIComponent(p.id) + '/kurang">Lengkapi</a></td></tr>';
+      }).join('') || '<tr><td colspan="5" class="kosong">Tidak ada kelompok yang cocok dengan saringan.</td></tr>';
+      $('#ig-kaki').innerHTML = 'Menampilkan ' + tampil.length + ' dari ' + rows.length + ' kelompok' + (rows.length > tampil.length ? ' · <a href="#" id="ig-semua">Tampilkan semua</a>' : '');
+      if ($('#ig-semua')) $('#ig-semua').onclick = function (ev) { ev.preventDefault(); st.semua = true; isi(); };
+    };
+    $$('.ig-saring').forEach(function (b) { b.onclick = function () { st.sr = b.dataset.sr; $$('.ig-saring').forEach(function (x) { x.classList.toggle('aktif', x === b); }); isi(); }; });
+    if ($('#ig-wil')) $('#ig-wil').onchange = function () { st.wil = this.value; isi(); };
+    $$('a[href="#ingat-daftar"]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); $('#ingat-daftar').scrollIntoView({ behavior: 'smooth' }); }; });
+    isi();
+  }
+  function unduhKurang() {
+    var rows = [];
+    belumLengkap().forEach(function (p) {
+      var q = p.hit.kurang, dasar = { Kabupaten: p.kab, Kecamatan: p.kec, ID: p.id, 'Kelompok': p.poktan, 'Kelengkapan (%)': q.persen };
+      q.kode.forEach(function (c) { var kat = HOK.KAT_KURANG.filter(function (k) { return k[0] === HOK.kategoriKurang(c); })[0]; rows.push(Object.assign({}, dasar, { Kategori: kat ? kat[1] : '', Kekurangan: HOK.labelKurang(c) })); });
+      if (q.kKtp) rows.push(Object.assign({}, dasar, { Kategori: 'KTP pekerja', Kekurangan: 'KTP ' + q.kKtp + ' pekerja belum diunggah: ' + q.ktpBelum.join(', ') }));
+    });
+    U.unduhXlsx('Daftar_Kekurangan_' + S.boot.hariIni + '.xlsx', [{ nama: 'Kekurangan', rows: rows }]);
+  }
+  function dialogPengingat() {
+    var bl = belumLengkap(), f = fase();
+    if (!bl.length) return;
+    var nItem = bl.reduce(function (a, p) { return a + p.hit.kurang.n; }, 0);
+    var wilayah = S.boot.user.peran === 'kabupaten' ? 'Kabupaten ' + S.boot.user.kab : S.boot.user.peran === 'provinsi' ? 'Provinsi ' + S.boot.user.provinsi : 'seluruh wilayah';
+    U.dialog('<div class="ig-dlg ig-' + f.k + '"><div class="ig-dlg-h"><b class="num">' + e(String(f.angka)) + '</b><div><h2>' + e(f.satuan + ' · ' + f.eyebrow) + '</h2><span>' + e(f.k === 'kritis' || f.k === 'lewat' ? f.judul : 'Batas akhir input ' + tglPanjang(IG.akhir)) + '</span></div></div>' +
+      '<p><b>' + bl.length + ' kelompok</b> di ' + e(wilayah) + ' masih memiliki <b>' + nItem + ' kekurangan</b>. Kekurangan terbanyak:</p>' +
+      bl.slice(0, 5).map(function (p) { return '<a class="ig-dlg-baris" href="#/poktan/' + encodeURIComponent(p.id) + '/kurang"><span><b>' + e(p.poktan) + '</b> · ' + e(wilayahKurang(p)) + '</span><span class="ig-merah">' + p.hit.kurang.n + ' kurang</span></a>'; }).join('') +
+      '<div class="baris" style="justify-content:flex-end"><button class="btn" id="ig-tutup" type="button">Tutup</button><button class="btn utama" id="ig-lihat" type="button">Lihat daftar kekurangan</button></div></div>', function (d) {
+      $('#ig-tutup', d).onclick = U.tutupDialog;
+      $$('.ig-dlg-baris', d).forEach(function (a) { a.addEventListener('click', U.tutupDialog); });
+      $('#ig-lihat', d).onclick = function () { U.tutupDialog(); if ((location.hash || '#/dashboard').indexOf('#/dashboard') !== 0) { location.hash = '#/dashboard'; setTimeout(function () { if ($('#ingat-daftar')) $('#ingat-daftar').scrollIntoView(); }, 400); } else if ($('#ingat-daftar')) $('#ingat-daftar').scrollIntoView({ behavior: 'smooth' }); };
+    });
+  }
+  function cekPopupLogin() {
+    var ada = false;
+    try { ada = sessionStorage.getItem('hok_ingat') === '1'; if (ada) sessionStorage.removeItem('hok_ingat'); } catch (x) { ada = false; }
+    if (ada) dialogPengingat();
+  }
+  function tabKurang(head) {
+    var p = S.detail.poktan, q = p.hit.kurang, f = fase(), id = encodeURIComponent(p.id);
+    var namaTab = { data: 'Data poktan', hadir: 'Kehadiran (HOK)', dokumen: 'Dokumen & foto' };
+    var grup = HOK.KAT_KURANG.map(function (k) {
+      var item = q.kode.filter(function (c) { return HOK.kategoriKurang(c) === k[0]; }).map(function (c) { return { label: HOK.labelKurang(c) }; });
+      if (k[0] === 'ktp' && q.kKtp) item.push({ label: 'KTP ' + q.kKtp + ' pekerja belum diunggah', ket: q.ktpBelum.slice(0, 12).join(', ') + (q.ktpBelum.length > 12 ? ', +' + (q.ktpBelum.length - 12) + ' lainnya' : '') });
+      return { k: k, item: item };
+    });
+    var kurangG = grup.filter(function (g) { return g.item.length; }), lengkapG = grup.filter(function (g) { return !g.item.length; });
+    render('poktan', head +
+      (q.n ? '<section class="ig ig-kecil ig-' + (f.k === 'beres' ? 'awal' : f.k) + '"><div class="ig-teks"><h2>Kelompok ini masih punya ' + q.n + ' kekurangan · kelengkapan ' + q.persen + '%</h2><p>' +
+        e(f.k === 'lewat' ? 'Batas akhir ' + tglPanjang(IG.akhir) + ' sudah lewat ' + f.angka + ' hari. Selesaikan secepatnya.' : f.k === 'kritis' ? f.angka + ' hari menuju batas akhir input ' + tglPanjang(IG.akhir) + '.' : (selisih(S.boot.hariIni, IG.target) >= 0 ? selisih(S.boot.hariIni, IG.target) + ' hari menuju target lengkap ' + tglPanjang(IG.target) + ' · ' : '') + 'batas akhir input ' + tglPanjang(IG.akhir) + '.') + '</p></div></section>'
+        : '<section class="ig ig-kecil ig-beres"><div class="ig-teks"><h2>Kelompok ini sudah lengkap</h2><p>Semua isian, kehadiran dan berkas sudah ada.</p></div></section>') +
+      kurangG.map(function (g) {
+        return '<section class="panel" style="padding:0"><div class="panel-h" style="padding:12px 18px;margin:0;border-bottom:1px solid var(--line)"><div><h2 style="display:inline">' + e(g.k[1]) + '</h2> <span class="kecil muted">di tab ' + e(namaTab[g.k[2]]) + '</span></div><span class="pill crit">' + g.item.length + ' kurang</span></div>' +
+          g.item.map(function (it) { return '<div class="ig-item"><span class="ig-ikon" aria-hidden="true">!</span><div style="flex:1;min-width:0"><b>' + e(it.label) + '</b>' + (it.ket ? '<div class="kecil muted">' + e(it.ket) + '</div>' : '') + '</div><a class="btn kecil utama" href="#/poktan/' + id + '/' + g.k[2] + '">' + (g.k[2] === 'dokumen' ? 'Unggah' : 'Isi') + '</a></div>'; }).join('') + '</section>';
+      }).join('') +
+      (lengkapG.length ? '<section class="panel"><div class="panel-h"><h2>Sudah lengkap</h2></div><div class="ig-chips ok">' + lengkapG.map(function (g) { return '<span>' + e(g.k[1]) + '</span>'; }).join('') + '</div></section>' : '') +
+      '<p class="kecil muted">Daftar ini diperbarui setiap kali data disimpan. Klik Muat ulang di atas bila baru saja mengunggah berkas.</p>');
   }
 
   // ------------------------------------------------------------------ dashboard
@@ -139,6 +276,7 @@
     render('dashboard',
       '<div class="judul"><div><h1>' + e(judul) + '</h1><p>' + U.angka(r.jumlahPoktan) + ' baris poktan · ' + U.ha(t.luas || 0) + ' ha · target ' + U.angka(t.tHOK || 0) + ' HOK (pengolahan ' + U.angka(t.tOlah || 0) + ' + penanaman ' + U.angka(t.tTanam || 0) + ') · nilai SPK ' + U.rp(t.tBiaya || 0) + '</p></div>' +
       '<div class="baris"><button class="btn" id="unduh-rekap">Unduh rekap Excel</button></div></div>' +
+      bannerPengingat() + sectionPengingat() +
       '<section class="kpis" aria-label="Ringkasan">' +
       kpi('Kabupaten dengan HOK masuk', kabJalan, '/ ' + kab.length, kab.length ? kabJalan / kab.length * 100 : 0, kab.filter(function (k) { return !k.n; }).length + ' kabupaten belum ada poktan') +
       kpi('HOK masuk', U.angka(t.rHOK || 0), '/ ' + U.angka(t.tHOK || 0), t.tHOK ? t.rHOK / t.tHOK * 100 : 0, 'pengolahan ' + U.angka(t.rOlah || 0) + '/' + U.angka(t.tOlah || 0) + ' · penanaman ' + U.angka(t.rTanam || 0) + '/' + U.angka(t.tTanam || 0)) +
@@ -169,6 +307,7 @@
       function () {
         $$('tr[data-kab]').forEach(function (tr) { tr.onclick = function () { S.filter.kab = tr.dataset.kab; location.hash = '#/poktan'; }; });
         $('#unduh-rekap').onclick = unduhRekap;
+        pasangPengingat(); cekPopupLogin();
       });
   }
 
@@ -210,7 +349,7 @@
               '<td><span class="tag ' + kodeKeg(p.keg) + '">' + namaKeg(p.keg) + '</span></td><td class="muted">' + e(p.desa) + ' · ' + e(p.kec) + '</td><td class="r num">' + U.ha(p.luas) + ' ha</td>' +
               '<td>' + langkah(h.tahap) + '<span class="kecil muted">' + e(h.namaTahap) + '</span></td><td class="num" style="white-space:nowrap">' + U.angka(h.rHOK) + ' / ' + U.angka(h.tHOK) + '<div class="kecil muted">olah ' + U.angka(h.per.olah.rHOK) + '/' + U.angka(h.per.olah.tHOK) + ' · tanam ' + U.angka(h.per.tanam.rHOK) + '/' + U.angka(h.per.tanam.tHOK) + '</div><div class="kecil muted">' + h.nPek + ' pekerja</div></td>' +
               '<td>' + pillStatus(h.status) + (h.potensi ? '<div class="kecil" style="color:var(--crit);font-weight:600;margin-top:3px">' + U.rp(h.potensi) + '</div>' : '') + '</td>' +
-              '<td class="num kecil">' + h.dok.persen + '%<div class="muted">KTP ' + h.dok.ktp + '/' + h.nPek + ' · foto ' + h.dok.geo + '/' + HOK.SLOT.geo.length + '</div></td></tr>';
+              '<td class="num kecil">' + (h.kurang ? (h.kurang.n ? '<span class="pill crit">' + h.kurang.n + ' kurang</span>' : '<span class="pill ok">Lengkap</span>') + '<br>' : '') + h.dok.persen + '%<div class="muted">KTP ' + h.dok.ktp + '/' + h.nPek + ' · foto ' + h.dok.geo + '/' + HOK.SLOT.geo.length + '</div></td></tr>';
           }).join('') : '<tr><td colspan="9" class="kosong">Tidak ada poktan yang cocok dengan saringan.</td></tr>';
           $$('#tb-poktan tr[data-id]').forEach(function (tr) { tr.onclick = function () { location.hash = '#/poktan/' + encodeURIComponent(tr.dataset.id); }; });
         };
@@ -315,7 +454,7 @@
     muatDetail(id).then(function (ok) {
       if (!ok) return;
       var d = S.detail, p = d.poktan, h = p.hit;
-      var tabs = [['data', 'Data poktan'], ['hadir', 'Kehadiran (HOK)'], ['dokumen', 'Dokumen & foto'], ['cetak', 'Cetak form'], ['temuan', 'Temuan' + (d.temuan.length ? ' (' + d.temuan.length + ')' : '')]];
+      var tabs = [['data', 'Data poktan'], ['hadir', 'Kehadiran (HOK)'], ['dokumen', 'Dokumen & foto'], ['cetak', 'Cetak form'], ['kurang', 'Kekurangan' + (h.kurang && h.kurang.n ? ' (' + h.kurang.n + ')' : '')], ['temuan', 'Temuan' + (d.temuan.length ? ' (' + d.temuan.length + ')' : '')]];
       var head = '<div class="judul"><div><a href="#/poktan" class="kecil" style="font-weight:600">‹ Daftar poktan</a><h1>' + e(p.id) + ' · ' + e(p.poktan) + '</h1>' +
         '<div class="ringkas"><span><span class="tag ' + kodeKeg(p.keg) + '">' + e(p.keg) + '</span></span><span>' + e(p.desa) + ', ' + e(p.kec) + ', ' + e(p.kab) + '</span><span>Luas <b>' + U.ha(p.luas) + ' ha</b></span>' +
         '<span>Target <b>' + U.angka(h.tHOK) + ' HOK</b> · ' + U.rp(h.tBiaya) + '</span><span>Masuk <b>' + U.angka(h.rHOK) + ' HOK</b></span><span>' + pillStatus(h.status) + '</span></div></div>' +
@@ -325,6 +464,7 @@
       else if (tab === 'dokumen') tabDokumen(head);
       else if (tab === 'cetak') tabCetak(head);
       else if (tab === 'temuan') tabTemuan(head);
+      else if (tab === 'kurang') tabKurang(head);
       else viewPoktanForm(head);
     });
   }
