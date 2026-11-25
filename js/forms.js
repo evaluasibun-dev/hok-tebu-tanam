@@ -250,7 +250,7 @@ var FORM = (function () {
             '<td>' + (ttdKiri ? no + '. ……………' : '') + '</td><td>' + (ttdKiri ? '' : no + '. ……………') + '</td></tr>';
         }).join('') +
         (b === nHal - 1 ? '<tr><td colspan="3" class="c tebal">JUMLAH</td><td class="c tebal">' + totH + '</td><td></td><td class="r tebal">' + U.angka(totR) + '</td><td colspan="2"></td></tr>' : '') +
-        '</table>' + ttdTimKetua(F, F.p.tgl_tt) + '</div>';
+        '</table>' + ttdTimKetua(F, F.jenis ? HOK.tglTerima(F.p, F.jenis) : F.p.tgl_tt) + '</div>';
     }
     return out;
   }

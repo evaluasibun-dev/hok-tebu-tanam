@@ -450,7 +450,7 @@ var EKSPOR = (function () {
     var totH = HOK.r3(pek.reduce(function (s, w) { return s + HOK.hokW(w); }, 0));
     sel(ws, 'D' + r, { formula: pek.length ? 'SUM(D' + r0 + ':D' + (r - 1) + ')' : '0', result: totH }, { h: 'center', bold: true, border: true, kecil: true });
     sel(ws, 'F' + r, { formula: pek.length ? 'SUM(F' + r0 + ':F' + (r - 1) + ')' : '0', result: HOK.r3(totH * upah) }, { h: 'right', bold: true, border: true, kecil: true, fmt: RP });
-    ttd(ws, r + 2, 8, F, nv, p.tgl_tt);
+    ttd(ws, r + 2, 8, F, nv, F.jenis ? HOK.tglTerima(p, F.jenis) : p.tgl_tt);
   }
 
   var perJ = function (fn, kode) { return function (wb, F) { var Fj = formUntuk(kode, F); fn(wb, Fj, nilai(Fj)); }; };

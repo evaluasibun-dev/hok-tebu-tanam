@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.4.0';
+  var VERSI = '2.4.1';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -17,7 +17,7 @@ var HOK = (function () {
     POKTAN: ['id', 'kab', 'keg', 'poktan', 'ketua', 'nik_ketua', 'jalan', 'desa', 'kec', 'bank', 'norek', 'namarek', 'npwp',
       'luas', 'hokha_khusus', 'upah_khusus', 'no_cpcl', 'tgl_cpcl', 'no_spk', 'tgl_spk', 'tempat_spk', 'jalan_spk', 'spk_sd',
       'tgl_sptjm', 'tgl_rukk', 'mulai', 'selesai', 'tgl_lap', 'no_bap', 'tgl_bap', 'no_bast', 'tgl_bast', 'no_kw', 'tgl_kw',
-      'tgl_tt', 'real_luas', 'folder_id', 'dok', 'diubah', 'oleh', 'mulai_olah', 'npwp_an', 'selesai_olah', 'mulai_tanam', 'jenis_kel', 'tgl_serah', 'tahap_sk'],
+      'tgl_tt', 'real_luas', 'folder_id', 'dok', 'diubah', 'oleh', 'mulai_olah', 'npwp_an', 'selesai_olah', 'mulai_tanam', 'jenis_kel', 'tgl_serah', 'tahap_sk', 'tgl_tt_olah'],
     PEKERJA: ['id', 'id_poktan', 'kab', 'nama', 'nik', 'alamat', 'hadir', 'diubah', 'oleh', 'jenis'],
     PENGGUNA: ['id', 'nama', 'peran', 'provinsi', 'kab', 'kode_hash', 'aktif', 'dibuat', 'terakhir_masuk'],
     LOG: ['waktu', 'pengguna', 'aksi', 'rincian']
@@ -96,7 +96,7 @@ var HOK = (function () {
 
   // Kolom POKTAN yang boleh diubah lewat formulir (folder_id, dok, diubah, oleh diatur sistem)
   var FIELD_POKTAN = TABEL.POKTAN.filter(function (k) { return ['id', 'folder_id', 'dok', 'diubah', 'oleh'].indexOf(k) < 0; });
-  var FIELD_TANGGAL = ['tgl_cpcl', 'tgl_spk', 'spk_sd', 'tgl_sptjm', 'tgl_rukk', 'mulai', 'mulai_olah', 'selesai_olah', 'mulai_tanam', 'selesai', 'tgl_lap', 'tgl_bap', 'tgl_bast', 'tgl_kw', 'tgl_tt', 'tgl_serah'];
+  var FIELD_TANGGAL = ['tgl_cpcl', 'tgl_spk', 'spk_sd', 'tgl_sptjm', 'tgl_rukk', 'mulai', 'mulai_olah', 'selesai_olah', 'mulai_tanam', 'selesai', 'tgl_lap', 'tgl_bap', 'tgl_bast', 'tgl_kw', 'tgl_tt', 'tgl_serah', 'tgl_tt_olah'];
   var FIELD_KAB_OPERATOR = ['ppk', 'nip_ppk', 'unit', 'penetap', 'sk_ppk', 'kedudukan', 'bendahara', 'nip_bendahara', 'tim_teknis', 'nip_tim_teknis'];
 
   // ------------------------------------------------------------------ util
@@ -379,6 +379,7 @@ var HOK = (function () {
     if (d('selesai_olah') && d('mulai_olah') && d('selesai_olah') < d('mulai_olah')) E('selesai_olah', 'Selesai pengolahan sebelum mulai pengolahan');
     if (d('selesai_olah') && d('mulai') && d('selesai_olah') < d('mulai')) E('selesai_olah', 'Selesai pengolahan sebelum tanggal mulai pekerjaan (SPK)');
     if (d('selesai_olah') && d('selesai') && d('selesai_olah') > d('selesai')) E('selesai_olah', 'Pengolahan tanah harus selesai paling lambat tanggal selesai pekerjaan (SPK)');
+    if (d('tgl_tt_olah') && d('selesai_olah') && d('tgl_tt_olah') < d('selesai_olah')) E('tgl_tt_olah', 'Tanda terima upah ' + jenisKeg('olah', p.keg).label.toLowerCase() + ' harus sama dengan atau setelah tanggal selesai ' + jenisKeg('olah', p.keg).label.toLowerCase());
     if (d('mulai_tanam') && d('mulai') && d('mulai_tanam') < d('mulai')) E('mulai_tanam', 'Penanaman tidak boleh dimulai sebelum tanggal mulai pekerjaan (SPK)');
     if (d('mulai_tanam') && d('selesai') && d('mulai_tanam') > d('selesai')) E('mulai_tanam', 'Penanaman harus dimulai paling lambat tanggal selesai pekerjaan');
     var batasSpk = num(ctx.setting.batas_hari_spk);
@@ -424,6 +425,12 @@ var HOK = (function () {
   function awalHadir(p) { return periode(p, 'olah').awal; }
   // periode kehadiran per jenis pekerjaan. Pengolahan: tgl mulai–selesai pengolahan; penanaman: tgl mulai penanaman–tgl selesai pekerjaan (SPK).
   // Bila belum diisi, memakai tgl mulai/selesai pekerjaan SPK. Kedua periode boleh tumpang tindih.
+  // tanggal tanda terima upah per jenis: pengolahan/penyiapan memakai tgl_tt_olah (kosong = tgl selesai pengolahan), penanaman memakai tgl_tt
+  function tglTerima(p, j) {
+    if (j !== 'olah') return s(p.tgl_tt);
+    if (isISO(s(p.tgl_tt_olah))) return s(p.tgl_tt_olah);
+    return periode(p, 'olah').akhir || s(p.tgl_tt);
+  }
   function periode(p, j) {
     var m = isISO(p.mulai) ? p.mulai : null, sl = isISO(p.selesai) ? p.selesai : null;
     if (jenisOk(j) === 'tanam') return { awal: isISO(p.mulai_tanam) ? p.mulai_tanam : m, akhir: sl };
@@ -1337,7 +1344,7 @@ var HOK = (function () {
   return {
     VERSI: VERSI, TABEL: TABEL, KEG: KEG, SLOT: SLOT, NPWP_AN: NPWP_AN, SUBFOLDER: SUBFOLDER, BULAN: BULAN, NAMA_TAHAP: NAMA_TAHAP,
     FIELD_TANGGAL: FIELD_TANGGAL, MIME_OK: MIME_OK,
-    handle: handle, salinDariLama: salinDariLama, JENIS: JENIS, DAFTAR_JENIS: DAFTAR_JENIS, periode: periode, jenisW: jenisW, ukurKecepatan: ukurKecepatan, setupAwal: setupAwal, pindaiDokumen: pindaiDokumen, buatPengguna: buatPengguna,
+    handle: handle, salinDariLama: salinDariLama, JENIS: JENIS, DAFTAR_JENIS: DAFTAR_JENIS, periode: periode, tglTerima: tglTerima, jenisW: jenisW, ukurKecepatan: ukurKecepatan, setupAwal: setupAwal, pindaiDokumen: pindaiDokumen, buatPengguna: buatPengguna,
     // dipakai juga di browser untuk validasi langsung
     cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, r3: r3, hokW: hokW, parseHadir: parseHadir, parseNilai: parseNilai, teksHadir: teksHadir, nilaiSah: nilaiSah, JENIS_KEL: JENIS_KEL, DAFTAR_JENIS_KEL: DAFTAR_JENIS_KEL, jenisKel: jenisKel, npwpAn: npwpAn, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
     namaFolder: namaFolder, validasiPoktan: validasiPoktan, validasiPekerja: validasiPekerja, sha256: sha256, hashKode: hashKode,

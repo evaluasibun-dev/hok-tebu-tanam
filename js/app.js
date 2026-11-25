@@ -486,7 +486,7 @@
       ['mulai_olah', 'Tgl mulai pengolahan tanah', 'date', 'awal daftar hadir pengolahan (15 HOK/ha)'], ['selesai_olah', 'Tgl selesai pengolahan tanah', 'date', 'akhir daftar hadir pengolahan'],
       ['mulai_tanam', 'Tgl mulai penanaman', 'date', 'awal daftar hadir penanaman (25 HOK/ha); boleh tumpang tindih dengan pengolahan'],
       ['tgl_lap', 'Tgl laporan pelaksanaan', 'date'], ['no_bap', 'No. BA Pemeriksaan'], ['tgl_bap', 'Tgl BA Pemeriksaan', 'date'], ['no_bast', 'No. BAST'], ['tgl_bast', 'Tgl BAST', 'date'],
-      ['no_kw', 'No. Kwitansi'], ['tgl_kw', 'Tgl Kwitansi', 'date'], ['tgl_tt', 'Tgl tanda terima upah pekerja', 'date']]],
+      ['no_kw', 'No. Kwitansi'], ['tgl_kw', 'Tgl Kwitansi', 'date'], ['tgl_tt_olah', 'Tgl terima upah pengolahan/penyiapan', 'date', 'F09a · kosong = otomatis tgl selesai pengolahan/penyiapan'], ['tgl_tt', 'Tgl tanda terima upah penanaman', 'date', 'F09b tanda terima upah penanaman']]],
     ['D. Realisasi dan penyerahan dokumen', [['real_luas', 'Realisasi luas (ha)', 'angka', 'hasil pemeriksaan tim teknis'],
       ['tgl_serah', 'Tgl dokumen HOK diserahkan ke dinas', 'date', 'untuk ditandatangani; sejak tanggal ini dokumen bertanda tangan ikut dihitung dalam progres']]]
   ];
@@ -947,7 +947,7 @@
   function tabCetak(head) {
     var d = S.detail, p = d.poktan, val = d.validasi.filter(function (x) { return x.level === 'error'; });
     var kosong = function (kode) {
-      var butuh = { F01: ['no_spk', 'tgl_spk', 'nik_ketua', 'norek'], F02: ['tgl_sptjm', 'nik_ketua'], F03: ['tgl_rukk'], F05a: ['mulai_olah', 'selesai_olah'], F05b: ['mulai_tanam', 'selesai'], F09a: ['tgl_tt'], F09b: ['tgl_tt'], F06: ['tgl_lap'], F07: ['no_bap', 'tgl_bap'], F08: ['no_bast', 'tgl_bast', 'no_bap'], F09: ['tgl_tt'], F11: ['no_kw', 'tgl_kw'] }[kode] || [];
+      var butuh = { F01: ['no_spk', 'tgl_spk', 'nik_ketua', 'norek'], F02: ['tgl_sptjm', 'nik_ketua'], F03: ['tgl_rukk'], F05a: ['mulai_olah', 'selesai_olah'], F05b: ['mulai_tanam', 'selesai'], F09a: [], F09b: ['tgl_tt'], F06: ['tgl_lap'], F07: ['no_bap', 'tgl_bap'], F08: ['no_bast', 'tgl_bast', 'no_bap'], F09: ['tgl_tt'], F11: ['no_kw', 'tgl_kw'] }[kode] || [];
       return butuh.filter(function (k) { return !String(p[k] || '').trim(); });
     };
     var namaF = {}; FIELD.forEach(function (s) { s[1].forEach(function (f) { namaF[f[0]] = f[1]; }); });
