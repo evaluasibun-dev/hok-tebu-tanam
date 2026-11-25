@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.3.0';
+  var VERSI = '2.4.0';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -17,7 +17,7 @@ var HOK = (function () {
     POKTAN: ['id', 'kab', 'keg', 'poktan', 'ketua', 'nik_ketua', 'jalan', 'desa', 'kec', 'bank', 'norek', 'namarek', 'npwp',
       'luas', 'hokha_khusus', 'upah_khusus', 'no_cpcl', 'tgl_cpcl', 'no_spk', 'tgl_spk', 'tempat_spk', 'jalan_spk', 'spk_sd',
       'tgl_sptjm', 'tgl_rukk', 'mulai', 'selesai', 'tgl_lap', 'no_bap', 'tgl_bap', 'no_bast', 'tgl_bast', 'no_kw', 'tgl_kw',
-      'tgl_tt', 'real_luas', 'folder_id', 'dok', 'diubah', 'oleh', 'mulai_olah', 'npwp_an', 'selesai_olah', 'mulai_tanam', 'jenis_kel'],
+      'tgl_tt', 'real_luas', 'folder_id', 'dok', 'diubah', 'oleh', 'mulai_olah', 'npwp_an', 'selesai_olah', 'mulai_tanam', 'jenis_kel', 'tgl_serah', 'tahap_sk'],
     PEKERJA: ['id', 'id_poktan', 'kab', 'nama', 'nik', 'alamat', 'hadir', 'diubah', 'oleh', 'jenis'],
     PENGGUNA: ['id', 'nama', 'peran', 'provinsi', 'kab', 'kode_hash', 'aktif', 'dibuat', 'terakhir_masuk'],
     LOG: ['waktu', 'pengguna', 'aksi', 'rincian']
@@ -27,11 +27,12 @@ var HOK = (function () {
   var KEG = {
     'Perluasan Tanaman Tebu': {
       kode: 'PL', nama: 'Perluasan Tanaman Tebu', judul: 'KEGIATAN PERLUASAN TANAMAN TEBU',
-      bantuan: 'Bantuan Biaya Pengolahan Tanah dan Penanaman', jenis: 'Pengolahan Tanah dan Penanaman',
-      frasa: 'Bantuan Biaya Pengolahan Tanah dan Penanaman Kegiatan Perluasan Tanaman Tebu',
-      biaya: 'Biaya Pengolahan Tanah dan Penanaman Kegiatan Perluasan Tanaman Tebu',
-      spk2: 'BIAYA PENGOLAHAN TANAH DAN PENANAMAN', spk3: 'KEGIATAN PERLUASAN TANAMAN TEBU',
-      sptjm: 'Kegiatan Perluasan Tanaman Tebu', dok3: 'PENGOLAHAN TANAH DAN PENANAMAN', swadaya: 'Perluasan Tanaman Tebu'
+      bantuan: 'Bantuan Biaya Penyiapan Lahan dan Penanaman', jenis: 'Penyiapan Lahan dan Penanaman',
+      frasa: 'Bantuan Biaya Penyiapan Lahan dan Penanaman Kegiatan Perluasan Tanaman Tebu',
+      biaya: 'Biaya Penyiapan Lahan dan Penanaman Kegiatan Perluasan Tanaman Tebu',
+      spk2: 'BIAYA PENYIAPAN LAHAN DAN PENANAMAN', spk3: 'KEGIATAN PERLUASAN TANAMAN TEBU',
+      sptjm: 'Kegiatan Perluasan Tanaman Tebu', dok3: 'PENYIAPAN LAHAN DAN PENANAMAN', swadaya: 'Perluasan Tanaman Tebu',
+      olah: { label: 'Penyiapan Lahan', judul: 'PENYIAPAN LAHAN' }
     },
     'Bongkar Ratoon': {
       kode: 'BR', nama: 'Bongkar Ratoon', judul: 'KEGIATAN BONGKAR RATOON',
@@ -49,6 +50,8 @@ var HOK = (function () {
     tanam: { kode: 'tanam', label: 'Penanaman', judul: 'PENANAMAN', kunci: 'hokha_tanam', bawaan: 25 }
   };
   var DAFTAR_JENIS = ['olah', 'tanam'];
+  // sebutan tahap pertama mengikuti kegiatan: Perluasan = Penyiapan Lahan, Bongkar Ratoon = Pengolahan Tanah
+  function jenisKeg(j, keg) { var k = KEG[keg], o = k && k[j]; return o ? Object.assign({}, JENIS[j], o) : JENIS[j]; }
   function jenisW(w) { return s(w && w.jenis) === 'tanam' ? 'tanam' : 'olah'; }
   function jenisOk(j) { return j === 'tanam' ? 'tanam' : 'olah'; }
 
@@ -93,7 +96,7 @@ var HOK = (function () {
 
   // Kolom POKTAN yang boleh diubah lewat formulir (folder_id, dok, diubah, oleh diatur sistem)
   var FIELD_POKTAN = TABEL.POKTAN.filter(function (k) { return ['id', 'folder_id', 'dok', 'diubah', 'oleh'].indexOf(k) < 0; });
-  var FIELD_TANGGAL = ['tgl_cpcl', 'tgl_spk', 'spk_sd', 'tgl_sptjm', 'tgl_rukk', 'mulai', 'mulai_olah', 'selesai_olah', 'mulai_tanam', 'selesai', 'tgl_lap', 'tgl_bap', 'tgl_bast', 'tgl_kw', 'tgl_tt'];
+  var FIELD_TANGGAL = ['tgl_cpcl', 'tgl_spk', 'spk_sd', 'tgl_sptjm', 'tgl_rukk', 'mulai', 'mulai_olah', 'selesai_olah', 'mulai_tanam', 'selesai', 'tgl_lap', 'tgl_bap', 'tgl_bast', 'tgl_kw', 'tgl_tt', 'tgl_serah'];
   var FIELD_KAB_OPERATOR = ['ppk', 'nip_ppk', 'unit', 'penetap', 'sk_ppk', 'kedudukan', 'bendahara', 'nip_bendahara', 'tim_teknis', 'nip_tim_teknis'];
 
   // ------------------------------------------------------------------ util
@@ -266,6 +269,14 @@ var HOK = (function () {
   }
   var NAMA_TAHAP = ['Belum SPK', 'SPK', 'Berjalan', 'BAP', 'BAST', 'Kwitansi'];
 
+  // tahap SK CPCL: isian tahap_sk, bila kosong diambil dari Nomor SK CPCL yang memuat "Tahap ..."
+  var TAHAP_SK = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+  function tahapSK(p) {
+    var t = s(p.tahap_sk); if (t) return t;
+    var m = /tahap\s*([IVX]+|\d+)/i.exec(s(p.no_cpcl)); if (!m) return '';
+    var x = m[1].toUpperCase(); return /^\d+$/.test(x) ? (TAHAP_SK[Number(x) - 1] || x) : x;
+  }
+  function ttdDihitung(p) { return isISO(s(p.tgl_serah)); }
   function ringkasDok(p, nPek, niks) {
     var d = parseJSON(p.dok, null) || { rek: [], geo: [], ktp: [], ttd: [], idn: [] };
     var ktpNik = (d.ktp || []).map(function (n) { return n.slice(0, 16); });
@@ -275,8 +286,10 @@ var HOK = (function () {
     var cocok = function (g) { return SLOT[g].filter(function (x) { return (d[g] || []).indexOf(x[0]) >= 0; }).length; };
     var rek = cocok('rek'), geo = cocok('geo'), ttd = cocok('ttd'), idn = cocok('idn');
     var geoJ = {}; DAFTAR_JENIS.forEach(function (j) { geoJ[j] = (d.geo || []).filter(function (n) { return n.indexOf(j + '_') === 0; }).length; });
-    var butuh = SLOT.idn.length + SLOT.rek.length + SLOT.geo.length + nPek + SLOT.ttd.length, ada = idn + rek + geo + ktpCocok + ttd;
-    return { idn: idn, geoJenis: geoJ, ktpKetua: ktpKetua, npwp: idnAda.indexOf('npwp') >= 0, rek: rek, geo: geo, ktp: ktpCocok, ktpFile: (d.ktp || []).length, ttd: ttd, nPek: nPek,
+    // dokumen bertanda tangan baru dihitung setelah berkas HOK diserahkan ke dinas untuk ditandatangani
+    var ttdHitung = ttdDihitung(p);
+    var butuh = SLOT.idn.length + SLOT.rek.length + SLOT.geo.length + nPek + (ttdHitung ? SLOT.ttd.length : 0), ada = idn + rek + geo + ktpCocok + (ttdHitung ? ttd : 0);
+    return { idn: idn, geoJenis: geoJ, ktpKetua: ktpKetua, npwp: idnAda.indexOf('npwp') >= 0, rek: rek, geo: geo, ktp: ktpCocok, ktpFile: (d.ktp || []).length, ttd: ttd, ttdHitung: ttdHitung, nPek: nPek,
       persen: butuh ? Math.round(ada / butuh * 100) : 0, ada: ada, butuh: butuh, lengkap: ada === butuh && nPek > 0 };
   }
 
@@ -309,7 +322,8 @@ var HOK = (function () {
     var nHok = 2;
     if (!h.nPek) k.push('hok:pekerja');
     else { ['olah', 'tanam'].forEach(function (j) { var q = h.per[j]; if (!q.tHOK || q.rHOK < r3(q.tHOK)) k.push('hok:' + j); }); }
-    ['idn', 'rek', 'geo', 'ttd'].forEach(function (g) { SLOT[g].forEach(function (x) { if ((d[g] || []).indexOf(x[0]) < 0) k.push(g + ':' + x[0]); }); });
+    var grupDok = ttdDihitung(p) ? ['idn', 'rek', 'geo', 'ttd'] : ['idn', 'rek', 'geo'];
+    grupDok.forEach(function (g) { SLOT[g].forEach(function (x) { if ((d[g] || []).indexOf(x[0]) < 0) k.push(g + ':' + x[0]); }); });
     if (!isISO(s(p.tgl_bap))) k.push('akhir:bap');
     if (!isISO(s(p.tgl_bast))) k.push('akhir:bast');
     if (!(s(p.no_kw) || isISO(s(p.tgl_kw)))) k.push('akhir:kw');
@@ -319,9 +333,9 @@ var HOK = (function () {
       var nik = s(w.nik); if (!nik || sudah[nik]) return; sudah[nik] = 1;
       if (ktpNik.indexOf(nik) < 0 && !(ktpKetua && nik === s(p.nik_ketua))) belum.push(s(w.nama) || nik.slice(0, 4) + '…');
     });
-    var butuh = F_KURANG_DATA.length + F_KURANG_SPK.length + nHok + SLOT.idn.length + SLOT.rek.length + SLOT.geo.length + SLOT.ttd.length + 3 + Math.max(1, Object.keys(sudah).length);
+    var butuh = F_KURANG_DATA.length + F_KURANG_SPK.length + nHok + SLOT.idn.length + SLOT.rek.length + SLOT.geo.length + (ttdDihitung(p) ? SLOT.ttd.length : 0) + 3 + Math.max(1, Object.keys(sudah).length);
     var n = k.length + belum.length;
-    return { kode: k, kKtp: belum.length, ktpBelum: belum.slice(0, 40), n: n, butuh: butuh, persen: Math.max(0, Math.round((butuh - n) / butuh * 100)), lengkap: n === 0 };
+    return { kode: k, kKtp: belum.length, ktpBelum: belum.slice(0, 40), n: n, butuh: butuh, persen: Math.max(0, Math.round((butuh - n) / butuh * 100)), lengkap: n === 0, ttdHitung: ttdDihitung(p) };
   }
   function kategoriKurang(kode) { return kode.split(':')[0]; }
 
@@ -373,6 +387,7 @@ var HOK = (function () {
     if (d('tgl_bap') && d('selesai') && d('tgl_bap') < d('selesai')) E('tgl_bap', 'BA Pemeriksaan harus setelah pekerjaan selesai');
     if (d('tgl_bast') && d('tgl_bap') && d('tgl_bast') < d('tgl_bap')) E('tgl_bast', 'BAST harus sama dengan atau setelah BA Pemeriksaan');
     if (d('tgl_kw') && d('tgl_bast') && d('tgl_kw') < d('tgl_bast')) E('tgl_kw', 'Kwitansi harus sama dengan atau setelah BAST');
+    if (d('tgl_serah') && d('tgl_spk') && d('tgl_serah') < d('tgl_spk')) E('tgl_serah', 'Tanggal penyerahan dokumen ke dinas harus setelah tanggal SPK');
     if (num(p.real_luas) > num(p.luas)) E('real_luas', 'Realisasi luas melebihi luas target');
     var t = tarif(p, ctx);
     if (t.stdUpah && t.upah > t.stdUpah) W('upah_khusus', 'Upah/HOK ' + rp(t.upah) + ' melebihi standar provinsi ' + rp(t.stdUpah));
@@ -1327,7 +1342,7 @@ var HOK = (function () {
     cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, r3: r3, hokW: hokW, parseHadir: parseHadir, parseNilai: parseNilai, teksHadir: teksHadir, nilaiSah: nilaiSah, JENIS_KEL: JENIS_KEL, DAFTAR_JENIS_KEL: DAFTAR_JENIS_KEL, jenisKel: jenisKel, npwpAn: npwpAn, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
     namaFolder: namaFolder, validasiPoktan: validasiPoktan, validasiPekerja: validasiPekerja, sha256: sha256, hashKode: hashKode,
     settingObj: settingObj, by: by, tglPendek: tglPendek, rp: rp,
-    PENGINGAT: PENGINGAT, KAT_KURANG: KAT_KURANG, labelKurang: labelKurang, kategoriKurang: kategoriKurang
+    PENGINGAT: PENGINGAT, KAT_KURANG: KAT_KURANG, labelKurang: labelKurang, kategoriKurang: kategoriKurang, ttdDihitung: ttdDihitung, jenisKeg: jenisKeg, tahapSK: tahapSK, TAHAP_SK: TAHAP_SK
   };
 })();
 

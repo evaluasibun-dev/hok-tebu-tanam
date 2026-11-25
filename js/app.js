@@ -247,7 +247,7 @@
       if (k[0] === 'ktp' && q.kKtp) item.push({ label: 'KTP ' + q.kKtp + ' pekerja belum diunggah', ket: q.ktpBelum.slice(0, 12).join(', ') + (q.ktpBelum.length > 12 ? ', +' + (q.ktpBelum.length - 12) + ' lainnya' : '') });
       return { k: k, item: item };
     });
-    var kurangG = grup.filter(function (g) { return g.item.length; }), lengkapG = grup.filter(function (g) { return !g.item.length; });
+    var kurangG = grup.filter(function (g) { return g.item.length; }), lengkapG = grup.filter(function (g) { return !g.item.length && !(g.k[0] === 'ttd' && q.ttdHitung === false); });
     render('poktan', head +
       (q.n ? '<section class="ig ig-kecil ig-' + (f.k === 'beres' ? 'awal' : f.k) + '"><div class="ig-teks"><h2>Kelompok ini masih punya ' + q.n + ' kekurangan · kelengkapan ' + q.persen + '%</h2><p>' +
         e(f.k === 'lewat' ? 'Batas akhir ' + tglPanjang(IG.akhir) + ' sudah lewat ' + f.angka + ' hari. Selesaikan secepatnya.' : f.k === 'kritis' ? f.angka + ' hari menuju batas akhir input ' + tglPanjang(IG.akhir) + '.' : (selisih(S.boot.hariIni, IG.target) >= 0 ? selisih(S.boot.hariIni, IG.target) + ' hari menuju target lengkap ' + tglPanjang(IG.target) + ' · ' : '') + 'batas akhir input ' + tglPanjang(IG.akhir) + '.') + '</p></div></section>'
@@ -256,6 +256,7 @@
         return '<section class="panel" style="padding:0"><div class="panel-h" style="padding:12px 18px;margin:0;border-bottom:1px solid var(--line)"><div><h2 style="display:inline">' + e(g.k[1]) + '</h2> <span class="kecil muted">di tab ' + e(namaTab[g.k[2]]) + '</span></div><span class="pill crit">' + g.item.length + ' kurang</span></div>' +
           g.item.map(function (it) { return '<div class="ig-item"><span class="ig-ikon" aria-hidden="true">!</span><div style="flex:1;min-width:0"><b>' + e(it.label) + '</b>' + (it.ket ? '<div class="kecil muted">' + e(it.ket) + '</div>' : '') + '</div><a class="btn kecil utama" href="#/poktan/' + id + '/' + g.k[2] + '">' + (g.k[2] === 'dokumen' ? 'Unggah' : 'Isi') + '</a></div>'; }).join('') + '</section>';
       }).join('') +
+      (q.ttdHitung === false ? '<section class="panel"><div class="panel-h"><h2>Dokumen bertanda tangan</h2><span class="pill">belum dihitung</span></div><p class="kecil">Selama berkas HOK masih disusun, dokumen bertanda tangan tidak ikut dihitung. Isi <b>Tgl dokumen HOK diserahkan ke dinas</b> di <a href="#/poktan/' + id + '/data">tab Data poktan bagian D</a> setelah berkas diserahkan untuk ditandatangani; sejak itu pindaian dokumen bertanda tangan masuk perhitungan.</p></section>' : '') +
       (lengkapG.length ? '<section class="panel"><div class="panel-h"><h2>Sudah lengkap</h2></div><div class="ig-chips ok">' + lengkapG.map(function (g) { return '<span>' + e(g.k[1]) + '</span>'; }).join('') + '</div></section>' : '') +
       '<p class="kecil muted">Daftar ini diperbarui setiap kali data disimpan. Klik Muat ulang di atas bila baru saja mengunggah berkas.</p>');
   }
@@ -479,14 +480,15 @@
       ['luas', 'Luas target (ha)', 'angka', 'sesuai SK CPCL'],
       ['upah_khusus', 'Upah/HOK khusus (opsional)', 'angka', 'kosongkan bila mengikuti standar provinsi'], ['_tarif', 'Berlaku', 'info']]],
     ['C. Nomor dan tanggal dokumen', [
-      ['no_cpcl', 'No. SK CPCL'], ['tgl_cpcl', 'Tgl SK CPCL', 'date'], ['no_spk', 'No. SPK'], ['tgl_spk', 'Tgl SPK', 'date', 'setelah DIPA dan SK CPCL'],
+      ['no_cpcl', 'No. SK CPCL'], ['tgl_cpcl', 'Tgl SK CPCL', 'date'], ['tahap_sk', 'Tahap SK CPCL', 'tahap_sk', 'tampil di cover berkas, mis. SK TAHAP III'], ['no_spk', 'No. SPK'], ['tgl_spk', 'Tgl SPK', 'date', 'setelah DIPA dan SK CPCL'],
       ['tempat_spk', 'SPK bertempat di'], ['jalan_spk', 'Jalan tempat SPK'], ['spk_sd', 'SPK berlaku s.d.', 'date'], ['tgl_sptjm', 'Tgl SPTJM', 'date', 'sama/setelah SPK'],
       ['tgl_rukk', 'Tgl RUKK', 'date', 'sama/setelah SPK, sebelum mulai'], ['mulai', 'Tgl mulai pekerjaan (SPK)', 'date', 'setelah tanggal SPK'], ['selesai', 'Tgl selesai pekerjaan (SPK)', 'date', 'dalam masa berlaku SPK; juga akhir penanaman'],
       ['mulai_olah', 'Tgl mulai pengolahan tanah', 'date', 'awal daftar hadir pengolahan (15 HOK/ha)'], ['selesai_olah', 'Tgl selesai pengolahan tanah', 'date', 'akhir daftar hadir pengolahan'],
       ['mulai_tanam', 'Tgl mulai penanaman', 'date', 'awal daftar hadir penanaman (25 HOK/ha); boleh tumpang tindih dengan pengolahan'],
       ['tgl_lap', 'Tgl laporan pelaksanaan', 'date'], ['no_bap', 'No. BA Pemeriksaan'], ['tgl_bap', 'Tgl BA Pemeriksaan', 'date'], ['no_bast', 'No. BAST'], ['tgl_bast', 'Tgl BAST', 'date'],
       ['no_kw', 'No. Kwitansi'], ['tgl_kw', 'Tgl Kwitansi', 'date'], ['tgl_tt', 'Tgl tanda terima upah pekerja', 'date']]],
-    ['D. Realisasi', [['real_luas', 'Realisasi luas (ha)', 'angka', 'hasil pemeriksaan tim teknis']]]
+    ['D. Realisasi dan penyerahan dokumen', [['real_luas', 'Realisasi luas (ha)', 'angka', 'hasil pemeriksaan tim teknis'],
+      ['tgl_serah', 'Tgl dokumen HOK diserahkan ke dinas', 'date', 'untuk ditandatangani; sejak tanggal ini dokumen bertanda tangan ikut dihitung dalam progres']]]
   ];
 
   function ctxLokal(pekerjaDetail) {
@@ -510,6 +512,9 @@
         inp = '<select id="fld-npwp_an" name="npwp_an"' + dis + '><option value="">– pilih –</option>' + HOK.NPWP_AN.map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'jenis_kel') {
         inp = '<select id="fld-jenis_kel" name="jenis_kel"' + dis + '>' + HOK.DAFTAR_JENIS_KEL.map(function (x) { return '<option' + (x === HOK.jenisKel({ jenis_kel: v }).nama ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
+      } else if (tipe === 'tahap_sk') {
+        var auto = HOK.tahapSK({ no_cpcl: (S.detail && S.detail.poktan && S.detail.poktan.no_cpcl) || '' });
+        inp = '<select id="fld-tahap_sk" name="tahap_sk"' + dis + '><option value="">' + (auto ? 'Otomatis dari No. SK CPCL (Tahap ' + auto + ')' : '– pilih tahap –') + '</option>' + HOK.TAHAP_SK.map(function (x) { return '<option value="' + x + '"' + (x === v ? ' selected' : '') + '>Tahap ' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'keg') {
         inp = '<select id="fld-keg" name="keg"' + dis + '>' + Object.keys(HOK.KEG).map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else {
@@ -578,10 +583,10 @@
 
   function tabHadir(head) {
     var d = S.detail, p = d.poktan, tulis = bolehTulis(p.kab);
-    var J = S.jenisHadir === 'tanam' ? 'tanam' : 'olah', JN = HOK.JENIS[J], lblJ = JN.label.toLowerCase(), JL = J === 'olah' ? 'tanam' : 'olah';
+    var J = S.jenisHadir === 'tanam' ? 'tanam' : 'olah', JN = HOK.jenisKeg(J, p.keg), lblJ = JN.label.toLowerCase(), JL = J === 'olah' ? 'tanam' : 'olah';
     var pr = HOK.periode(p, J), awalH = pr.awal, akhirH = pr.akhir;
     var pilihJenis = '<div class="pilih-jenis" role="tablist">' + HOK.DAFTAR_JENIS.map(function (k) {
-      var h = p.hit.per[k], jj = HOK.JENIS[k];
+      var h = p.hit.per[k], jj = HOK.jenisKeg(k, p.keg);
       return '<button type="button" role="tab" class="btn' + (k === J ? ' utama' : '') + '" aria-selected="' + (k === J) + '" data-jenis="' + k + '"><span><b>' + jj.label + '</b> · ' + p.hit.hok[k] + ' HOK/ha</span><span class="kecil" style="display:block;opacity:.85;font-weight:500">' + U.angka(h.rHOK) + ' / ' + U.angka(h.tHOK) + ' HOK · ' + h.nPek + ' pekerja</span></button>';
     }).join('') + '</div>';
     var pasangPilih = function () {
@@ -608,9 +613,9 @@
       '<div style="padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)">' +
       '<div class="baris"><button class="btn kecil" id="hal-prev" aria-label="Periode sebelumnya">‹</button><b id="hal-label" class="num"></b><button class="btn kecil" id="hal-next" aria-label="Periode berikutnya">›</button></div>' +
       (tulis ? '<div class="baris nilai-klik" role="group" aria-label="Nilai HOK saat kotak diklik"><span class="kecil muted">Nilai klik:</span>' + ['1', '0.75', '0.5', '0.25'].map(function (x) { return '<button type="button" class="btn kecil' + (Number(x) === S.nilaiKlik ? ' aktif' : '') + '" data-nk="' + x + '">' + U.angka(Number(x)) + '</button>'; }).join('') + '<input id="nk-lain" inputmode="decimal" placeholder="lain, mis. 0,76" aria-label="Nilai HOK lain" value="' + ([1, 0.75, 0.5, 0.25].indexOf(S.nilaiKlik) < 0 ? U.angka(S.nilaiKlik) : '') + '"></div>' : '') +
-      (tulis ? '<div class="baris">' + (d.pekerja.some(function (w) { return w.jenis === JL; }) ? '<button class="btn kecil" id="btn-salin-jenis">Salin nama dari ' + HOK.JENIS[JL].label.toLowerCase() + '</button>' : '') + '<button class="btn kecil" id="btn-tempel">Tempel daftar pekerja</button><button class="btn kecil" id="btn-tambah">Tambah pekerja</button></div>' : '') + '</div>' +
+      (tulis ? '<div class="baris">' + (d.pekerja.some(function (w) { return w.jenis === JL; }) ? '<button class="btn kecil" id="btn-salin-jenis">Salin nama dari ' + HOK.jenisKeg(JL, p.keg).label.toLowerCase() + '</button>' : '') + '<button class="btn kecil" id="btn-tempel">Tempel daftar pekerja</button><button class="btn kecil" id="btn-tambah">Tambah pekerja</button></div>' : '') + '</div>' +
       '<div class="hadir-wrap"><table class="hadir" id="tbl-hadir"></table></div>' +
-      '<div style="padding:10px 14px;border-top:1px solid var(--line)" class="legenda"><span><i style="background:var(--green)"></i>Hadir 1 HOK</span><span><i style="background:var(--green-soft);box-shadow:inset 0 0 0 1px var(--green)"></i>Hadir sebagian (mis. 0,5 HOK)</span><span><i style="background:var(--crit)"></i>Bentrok: NIK sama sudah hadir di poktan lain / di luar aturan</span><span><i style="box-shadow:inset 0 0 0 2px var(--crit);background:#F6F8FC"></i>NIK ini sudah hadir di poktan lain atau di ' + HOK.JENIS[JL].label.toLowerCase() + ' pada tanggal itu</span><span><i style="background:#E2E7EF"></i>Di luar masa ' + lblJ + '</span>' +
+      '<div style="padding:10px 14px;border-top:1px solid var(--line)" class="legenda"><span><i style="background:var(--green)"></i>Hadir 1 HOK</span><span><i style="background:var(--green-soft);box-shadow:inset 0 0 0 1px var(--green)"></i>Hadir sebagian (mis. 0,5 HOK)</span><span><i style="background:var(--crit)"></i>Bentrok: NIK sama sudah hadir di poktan lain / di luar aturan</span><span><i style="box-shadow:inset 0 0 0 2px var(--crit);background:#F6F8FC"></i>NIK ini sudah hadir di poktan lain atau di ' + HOK.jenisKeg(JL, p.keg).label.toLowerCase() + ' pada tanggal itu</span><span><i style="background:#E2E7EF"></i>Di luar masa ' + lblJ + '</span>' +
       (tulis ? '<span>Pilih <b>Nilai klik</b> (1, 0,75, 0,5, 0,25 atau isi sendiri, mis. 0,76) lalu klik kotak. Klik kotak berisi nilai lain untuk menggantinya; klik lagi untuk mengosongkan. Klik tanggal di kepala kolom untuk menandai semua pekerja.</span>' : '') + '</div></section></div>' +
       '<aside class="samping"><div class="panel" style="display:flex;flex-direction:column;gap:10px"><div class="kecil muted" style="font-weight:600;letter-spacing:.08em">HOK ' + JN.judul + '</div>' +
       '<div><span id="sum-hok" style="font-family:var(--f-disp);font-weight:600;font-size:40px;line-height:1"></span> <span class="muted" id="sum-target"></span></div><div class="bar" style="height:8px"><i id="sum-bar"></i></div>' +
@@ -636,7 +641,7 @@
       if ($('#btn-salin-jenis')) $('#btn-salin-jenis').onclick = function () {
         var ada = {}, n = 0; H.rows.forEach(function (w) { ada[w.nik] = 1; });
         d.pekerja.filter(function (w) { return w.jenis === JL && !ada[w.nik]; }).forEach(function (w) { H.rows.push({ id: '', nama: w.nama, nik: w.nik, alamat: w.alamat || '', hadir: [] }); ada[w.nik] = 1; n++; });
-        ubah(); gambarHadir(); U.toast(n ? n + ' nama disalin. Tandai hari hadirnya: tidak boleh di tanggal yang sama dengan ' + HOK.JENIS[JL].label.toLowerCase() + '.' : 'Semua nama sudah ada di daftar ini');
+        ubah(); gambarHadir(); U.toast(n ? n + ' nama disalin. Tandai hari hadirnya: tidak boleh di tanggal yang sama dengan ' + HOK.jenisKeg(JL, p.keg).label.toLowerCase() + '.' : 'Semua nama sudah ada di daftar ini');
       };
       $('#btn-simpan-hadir').onclick = simpanHadir;
     });
@@ -686,7 +691,7 @@
         var set = {}; w.hadir.forEach(function (x) { set[x] = 1; });
         var dis = tulis ? '' : ' disabled';
         var lainSet = {}; (konf[w.nik] || []).forEach(function (k) { lainSet[k.tanggal] = k.poktan + ' (' + k.id_poktan + ')'; });
-        d.pekerja.forEach(function (o) { if (o.jenis !== J && o.nik === w.nik) o.hadir.forEach(function (x) { lainSet[x] = HOK.JENIS[o.jenis].label.toLowerCase() + ' poktan ini'; }); });
+        d.pekerja.forEach(function (o) { if (o.jenis !== J && o.nik === w.nik) o.hadir.forEach(function (x) { lainSet[x] = HOK.jenisKeg(o.jenis, p.keg).label.toLowerCase() + ' poktan ini'; }); });
         html += '<tr class="' + (errRow[i] ? 'salah' : '') + '"><td class="kiri"><input data-i="' + i + '" data-k="nama" type="text" value="' + e(w.nama) + '" placeholder="Nama lengkap sesuai KTP" aria-label="Nama pekerja ' + (i + 1) + '"' + dis + '>' +
           '<div class="dua"><input data-i="' + i + '" data-k="nik" type="text" inputmode="numeric" maxlength="20" class="mono" value="' + e(w.nik) + '" placeholder="NIK 16 digit" aria-label="NIK pekerja ' + (i + 1) + '"' + dis + '><input data-i="' + i + '" data-k="alamat" type="text" value="' + e(w.alamat) + '" placeholder="Alamat / desa" aria-label="Alamat pekerja ' + (i + 1) + '"' + dis + '></div>' +
           (errRow[i] ? '<div class="pesan-baris">' + e(errRow[i].join('; ')) + '</div>' : '') + (warnRow[i] ? '<div class="pesan-baris w">' + e(warnRow[i].join('; ')) + '</div>' : '') + '</td>' +
@@ -728,7 +733,7 @@
         cek(!ada(/luar masa/), 'Tanggal dalam masa ' + lblJ, U.rentang(awalH, akhirH)) +
         cek(t <= tH, 'HOK ' + lblJ + ' tidak melebihi target', U.angka(t) + ' dari ' + U.angka(tH) + ' HOK (' + p.hit.hok[J] + ' HOK/ha)') +
         cek(!nNik && !wNik, 'NIK 16 digit dan tidak ganda', nNik ? nNik + ' isian bermasalah' : (wNik ? wNik + ' peringatan struktur NIK' : 'semua NIK valid'), !nNik) +
-        cek(!ada(/sudah tercatat hadir/) && !wGanda, 'Tidak ada hari ganda', ada(/sudah tercatat hadir/) ? ada(/sudah tercatat hadir/) + ' tanggal baru bentrok dengan poktan lain atau ' + HOK.JENIS[JL].label.toLowerCase() : (wGanda ? wGanda + ' tanggal lama bentrok, perlu klarifikasi' : 'dicek ulang ke seluruh kabupaten saat disimpan'), !ada(/sudah tercatat hadir/)) +
+        cek(!ada(/sudah tercatat hadir/) && !wGanda, 'Tidak ada hari ganda', ada(/sudah tercatat hadir/) ? ada(/sudah tercatat hadir/) + ' tanggal baru bentrok dengan poktan lain atau ' + HOK.jenisKeg(JL, p.keg).label.toLowerCase() : (wGanda ? wGanda + ' tanggal lama bentrok, perlu klarifikasi' : 'dicek ulang ke seluruh kabupaten saat disimpan'), !ada(/sudah tercatat hadir/)) +
         cek(!ada(/^Nama/), 'Nama pekerja terisi', ada(/^Nama/) ? ada(/^Nama/) + ' baris tanpa nama' : 'lengkap') +
         (S.boot.setting.batas_hari_bulan ? cek(!ada(/batas/), 'Hari kerja per bulan', 'batas ' + S.boot.setting.batas_hari_bulan + ' hari per NIK') : '');
       $('#hadir-galat').innerHTML = err.length ? '<div class="galat">' + err.length + ' isian perlu diperbaiki sebelum disimpan.</div>' : '';
@@ -814,13 +819,13 @@
       var fKtpKetua = cari('idn', 'ktp_ketua'), nikKetua = String(p.nik_ketua || '');
       var ktpPekerja = function (w) { return b.filter(function (f) { return f.grup === 'ktp' && f.nama.indexOf(w.nik + '_') === 0; })[0] || (fKtpKetua && w.nik === nikKetua ? fKtpKetua : null); };
       var nIdn = hitung('idn', slot.idn.length), nRek = hitung('rek', slot.rek.length), nGeo = hitung('geo', slot.geo.length), nTtd = hitung('ttd', slot.ttd.length), nKtp = pekUnik.filter(function (w) { return !!ktpPekerja(w); }).length;
-      var total = slot.idn.length + slot.rek.length + slot.geo.length + slot.ttd.length + pekUnik.length, ada = nIdn + nRek + nGeo + nTtd + nKtp;
+      var ttdH = HOK.ttdDihitung(p), total = slot.idn.length + slot.rek.length + slot.geo.length + (ttdH ? slot.ttd.length : 0) + pekUnik.length, ada = nIdn + nRek + nGeo + (ttdH ? nTtd : 0) + nKtp;
       var kartu = function (g, s, label) {
         var f = cari(g, s), m = f && f.meta, ket = '', salah = false;
         if (f) {
           ket = U.angka(f.ukuran / 1024) + ' KB · diunggah ' + U.tglPendek(String(f.dibuat).slice(0, 10));
           if (g === 'geo') {
-            if (m && m.tanggal) { var tg = m.tanggal.slice(0, 10), jg = HOK.jenisW({ jenis: s.split('_')[0] }), prJ = HOK.periode(p, jg); salah = (prJ.awal && tg < prJ.awal) || (prJ.akhir && tg > prJ.akhir); ket += '<br>Diambil ' + e(m.tanggal.replace('T', ' ')) + (salah ? ' · di luar masa ' + HOK.JENIS[jg].label.toLowerCase() : ''); }
+            if (m && m.tanggal) { var tg = m.tanggal.slice(0, 10), jg = HOK.jenisW({ jenis: s.split('_')[0] }), prJ = HOK.periode(p, jg); salah = (prJ.awal && tg < prJ.awal) || (prJ.akhir && tg > prJ.akhir); ket += '<br>Diambil ' + e(m.tanggal.replace('T', ' ')) + (salah ? ' · di luar masa ' + HOK.jenisKeg(jg, p.keg).label.toLowerCase() : ''); }
             else ket += '<br>Tanpa data tanggal di foto';
             if (m && m.lat) ket += '<br>' + m.lat + ', ' + m.lng;
           }
@@ -832,11 +837,11 @@
       };
       $('#dok-isi').innerHTML =
         '<section class="panel"><div class="panel-h"><h2>Kelengkapan dokumen</h2><span class="kecil muted">Disimpan di Google Drive: HOK_Tebu_15_25_2026 / ' + e(((S.boot && S.boot.kabBy) || {})[p.kab] ? S.boot.kabBy[p.kab].provinsi : '') + ' / ' + e(p.kab) + ' / ' + e(HOK.namaFolder(p)) + '</span></div>' +
-        '<div style="display:flex;gap:14px;align-items:center"><span style="font-family:var(--f-disp);font-size:40px;font-weight:600">' + Math.round(ada / total * 100) + '%</span><div style="flex:1"><div class="bar" style="height:8px"><i style="width:' + (ada / total * 100) + '%"></i></div><div class="kecil muted" style="margin-top:6px">' + ada + ' dari ' + total + ' berkas · KTP ketua & NPWP ' + nIdn + '/2 · rekening ' + nRek + '/' + slot.rek.length + ' · foto geotag ' + nGeo + '/' + slot.geo.length + ' · KTP ' + nKtp + '/' + pekUnik.length + ' · dokumen bertanda tangan ' + nTtd + '/' + slot.ttd.length + '</div></div></div>' +
+        '<div style="display:flex;gap:14px;align-items:center"><span style="font-family:var(--f-disp);font-size:40px;font-weight:600">' + Math.round(ada / total * 100) + '%</span><div style="flex:1"><div class="bar" style="height:8px"><i style="width:' + (ada / total * 100) + '%"></i></div><div class="kecil muted" style="margin-top:6px">' + ada + ' dari ' + total + ' berkas · KTP ketua & NPWP ' + nIdn + '/2 · rekening ' + nRek + '/' + slot.rek.length + ' · foto geotag ' + nGeo + '/' + slot.geo.length + ' · KTP ' + nKtp + '/' + pekUnik.length + ' · dokumen bertanda tangan ' + nTtd + '/' + slot.ttd.length + '' + (ttdH ? '' : ' (belum dihitung)') + '</div></div></div>' +
         (tulis ? '<p class="kecil muted" style="margin-top:8px">Foto dikecilkan otomatis sebelum diunggah (±400 KB). Tanggal dan koordinat foto dibaca dari kamera bila tersedia. Nama berkas dibuat otomatis sesuai aturan.</p>' : '') + '</section>' +
         HOK.DAFTAR_JENIS.map(function (j) {
           var pr = HOK.periode(p, j);
-          return '<section class="panel"><div class="panel-h"><h2>Foto geotag ' + HOK.JENIS[j].label.toLowerCase() + ' (0%, 50%, 100%)</h2><span class="kecil muted">' + (pr.awal ? U.rentang(pr.awal, pr.akhir) + ' · ' : '') + 'lahan yang sama, koordinat dan waktu terlihat</span></div><div class="slot-grid">' +
+          return '<section class="panel"><div class="panel-h"><h2>Foto geotag ' + HOK.jenisKeg(j, p.keg).label.toLowerCase() + ' (0%, 50%, 100%)</h2><span class="kecil muted">' + (pr.awal ? U.rentang(pr.awal, pr.akhir) + ' · ' : '') + 'lahan yang sama, koordinat dan waktu terlihat</span></div><div class="slot-grid">' +
             slot.geo.filter(function (x) { return x[0].indexOf(j + '_') === 0; }).map(function (x) { return kartu('geo', x[0], x[1].replace(/^(Pengolahan|Penanaman) /, '')); }).join('') + '</div></section>';
         }).join('') +
         '<section class="panel"><div class="panel-h"><h2>KTP ketua & NPWP</h2><span class="kecil muted">berwarna, tidak terpotong, tidak buram, jelas terbaca</span></div><div class="slot-grid">' +
@@ -853,7 +858,7 @@
             (f && tulis ? '<button class="btn kecil bahaya" data-hapus-f="' + f.id + '">Hapus</button>' : '') + '</div></div>';
         }).join('') + '</div>' : '<div class="kosong">Belum ada pekerja di daftar hadir.</div>') +
         (ktpLain.length ? '<div class="galat" style="margin-top:10px">' + ktpLain.length + ' berkas KTP tidak cocok dengan NIK di daftar hadir: ' + ktpLain.map(function (f) { return e(f.nama); }).join(', ') + '</div>' : '') + '</section>' +
-        '<section class="panel"><div class="panel-h"><h2>Dokumen bertanda tangan (pindaian)</h2><span class="kecil muted">PDF atau foto setelah ditandatangani dan bermaterai</span></div><div class="slot-grid">' + slot.ttd.map(function (s) { return kartu('ttd', s[0], s[1]); }).join('') + '</div></section>';
+        '<section class="panel"><div class="panel-h"><h2>Dokumen bertanda tangan (pindaian)</h2><span class="kecil muted">PDF atau foto setelah ditandatangani dan bermaterai</span></div>' + (HOK.ttdDihitung(p) ? '' : '<p class="kecil" style="margin:0 0 10px;padding:8px 12px;border-radius:8px;background:var(--sunk)">Belum dihitung dalam progres. Dokumen bertanda tangan mulai dihitung setelah <b>Tgl dokumen HOK diserahkan ke dinas</b> diisi di tab Data poktan bagian D.</p>') + '<div class="slot-grid">' + slot.ttd.map(function (s) { return kartu('ttd', s[0], s[1]); }).join('') + '</div></section>';
       $$('#dok-isi [data-lihat]').forEach(function (bt) { bt.onclick = function () { lihatBerkas(bt.dataset.lihat); }; });
       $$('#dok-isi [data-hapus-f]').forEach(function (bt) {
         bt.onclick = function () {
@@ -973,7 +978,7 @@
       $$('[data-word]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { var F = dataForm(); return (/^F1[024]/.test(bt.dataset.word) ? ambilFoto(F, bt.dataset.word) : Promise.resolve(F)).then(function (F) { return EKSPOR.word(bt.dataset.word, F); }); }); }; });
       $$('[data-excel]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { return EKSPOR.excel([bt.dataset.excel], dataForm()); }); }; });
       $('#word-semua').onclick = function () { var bt = this; proses(bt, function () { return ambilFoto(dataForm()).then(EKSPOR.wordSemua); }); };
-      $('#excel-semua').onclick = function () { var bt = this; proses(bt, function () { return EKSPOR.excel(['F00', 'F03', 'F05a', 'F05b', 'F06', 'F07', 'F09a', 'F09b'], dataForm()); }); };
+      $('#excel-semua').onclick = function () { var bt = this; proses(bt, function () { return EKSPOR.excel(['F00', 'F03', 'F05a', 'F05b', 'F06', 'F07', 'F09a', 'F09b', 'F13'], dataForm()); }); };
     });
   }
 
