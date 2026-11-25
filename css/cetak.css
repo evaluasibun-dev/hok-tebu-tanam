@@ -52,3 +52,24 @@
 .hal .ktp-grid .ktp { min-width: 0; min-height: 0; border: 0.6pt solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; font-size: 9pt; color: #555; text-align: center; padding: 2mm; }
 .hal .ktp-grid .ktp img { max-width: 100%; max-height: 43mm; min-height: 0; object-fit: contain; }
 .hal .ktp-grid .ktp .nm { font-size: 8pt; color: #000; margin-top: 1mm; }
+
+/* C00 cover berkas SPJ HOK */
+.hal.sampul { font-family: Calibri, Carlito, Arial, sans-serif; }
+.sampul .sampul-foto { width: 82%; height: 92mm; object-fit: cover; display: block; margin: 6mm 0 6mm; }
+.sampul .sampul-judul { display: flex; justify-content: space-between; align-items: center; gap: 10mm; }
+.sampul .sampul-h1 { font-size: 22pt; font-weight: 700; line-height: 1.25; color: #1f2a37; }
+.sampul .sampul-h2 { font-size: 14pt; font-weight: 700; color: #2f6b3a; margin-top: 3mm; }
+.sampul .sampul-tahap { background: #2b3440; color: #fff; font-size: 8pt; font-weight: 700; text-align: center; padding: 4mm 3mm; line-height: 1.4; }
+.sampul .sampul-isi { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 12mm; text-align: center; font-size: 10pt; line-height: 1.6; }
+.sampul .sampul-tahun { text-align: center; font-weight: 700; margin-top: 10mm; font-size: 10pt; }
+
+/* identitas daftar hadir: lebar kolom tetap, nilai tidak terlipat sempit */
+.hal table.kv-hadir { width: 100%; table-layout: fixed; }
+.hal table.kv-hadir td.l, .hal table.kv-hadir td.t { width: auto; }
+.hal table.kv-hadir td { white-space: normal; }
+.hal table.kv-hadir td.l { white-space: nowrap; overflow: hidden; }
+
+/* foto geotag F10: satu tahap satu halaman, dua foto bertumpuk */
+.hal .foto-tumpuk { display: flex; flex-direction: column; gap: 6pt; margin: 3pt 0 6pt; }
+.hal .foto-tumpuk .foto { height: 95mm; }
+.hal .foto-tumpuk .foto img { object-fit: contain; }
