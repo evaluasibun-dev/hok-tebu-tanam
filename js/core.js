@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '2.4.1';
+  var VERSI = '2.4.2';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -271,10 +271,12 @@ var HOK = (function () {
 
   // tahap SK CPCL: isian tahap_sk, bila kosong diambil dari Nomor SK CPCL yang memuat "Tahap ..."
   var TAHAP_SK = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+  function ROMAWI(n) { if (!(n > 0 && n < 50)) return ''; var r = '', v = [[40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]; v.forEach(function (x) { while (n >= x[0]) { r += x[1]; n -= x[0]; } }); return r; }
   function tahapSK(p) {
-    var t = s(p.tahap_sk); if (t) return t;
+    var t = s(p.tahap_sk).replace(/^(sk\s*)?tahap\s*/i, '').trim(); // isian manual: "Tahap VII", "7", "vii" -> VII
+    if (t) return /^\d+$/.test(t) ? (ROMAWI(Number(t)) || t) : (/^[ivxl]+$/i.test(t) ? t.toUpperCase() : t);
     var m = /tahap\s*([IVX]+|\d+)/i.exec(s(p.no_cpcl)); if (!m) return '';
-    var x = m[1].toUpperCase(); return /^\d+$/.test(x) ? (TAHAP_SK[Number(x) - 1] || x) : x;
+    var x = m[1].toUpperCase(); return /^\d+$/.test(x) ? (ROMAWI(Number(x)) || x) : x;
   }
   function ttdDihitung(p) { return isISO(s(p.tgl_serah)); }
   function ringkasDok(p, nPek, niks) {

@@ -480,7 +480,7 @@
       ['luas', 'Luas target (ha)', 'angka', 'sesuai SK CPCL'],
       ['upah_khusus', 'Upah/HOK khusus (opsional)', 'angka', 'kosongkan bila mengikuti standar provinsi'], ['_tarif', 'Berlaku', 'info']]],
     ['C. Nomor dan tanggal dokumen', [
-      ['no_cpcl', 'No. SK CPCL'], ['tgl_cpcl', 'Tgl SK CPCL', 'date'], ['tahap_sk', 'Tahap SK CPCL', 'tahap_sk', 'tampil di cover berkas, mis. SK TAHAP III'], ['no_spk', 'No. SPK'], ['tgl_spk', 'Tgl SPK', 'date', 'setelah DIPA dan SK CPCL'],
+      ['no_cpcl', 'No. SK CPCL'], ['tgl_cpcl', 'Tgl SK CPCL', 'date'], ['tahap_sk', 'Tahap SK CPCL', 'tahap_sk', 'pilih dari daftar atau ketik sendiri, mis. VII'], ['no_spk', 'No. SPK'], ['tgl_spk', 'Tgl SPK', 'date', 'setelah DIPA dan SK CPCL'],
       ['tempat_spk', 'SPK bertempat di'], ['jalan_spk', 'Jalan tempat SPK'], ['spk_sd', 'SPK berlaku s.d.', 'date'], ['tgl_sptjm', 'Tgl SPTJM', 'date', 'sama/setelah SPK'],
       ['tgl_rukk', 'Tgl RUKK', 'date', 'sama/setelah SPK, sebelum mulai'], ['mulai', 'Tgl mulai pekerjaan (SPK)', 'date', 'setelah tanggal SPK'], ['selesai', 'Tgl selesai pekerjaan (SPK)', 'date', 'dalam masa berlaku SPK; juga akhir penanaman'],
       ['mulai_olah', 'Tgl mulai pengolahan tanah', 'date', 'awal daftar hadir pengolahan (15 HOK/ha)'], ['selesai_olah', 'Tgl selesai pengolahan tanah', 'date', 'akhir daftar hadir pengolahan'],
@@ -514,7 +514,7 @@
         inp = '<select id="fld-jenis_kel" name="jenis_kel"' + dis + '>' + HOK.DAFTAR_JENIS_KEL.map(function (x) { return '<option' + (x === HOK.jenisKel({ jenis_kel: v }).nama ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'tahap_sk') {
         var auto = HOK.tahapSK({ no_cpcl: (S.detail && S.detail.poktan && S.detail.poktan.no_cpcl) || '' });
-        inp = '<select id="fld-tahap_sk" name="tahap_sk"' + dis + '><option value="">' + (auto ? 'Otomatis dari No. SK CPCL (Tahap ' + auto + ')' : '– pilih tahap –') + '</option>' + HOK.TAHAP_SK.map(function (x) { return '<option value="' + x + '"' + (x === v ? ' selected' : '') + '>Tahap ' + x + '</option>'; }).join('') + '</select>';
+        inp = '<input type="text" id="fld-tahap_sk" name="tahap_sk" list="dl-tahap_sk" autocomplete="off" maxlength="20" value="' + U.esc(v || '') + '" placeholder="' + (auto ? 'Otomatis: Tahap ' + auto + ' (dari No. SK CPCL)' : 'pilih atau ketik, mis. VII') + '"' + dis + '><datalist id="dl-tahap_sk">' + HOK.TAHAP_SK.map(function (x) { return '<option value="' + x + '">Tahap ' + x + '</option>'; }).join('') + '</datalist>';
       } else if (tipe === 'keg') {
         inp = '<select id="fld-keg" name="keg"' + dis + '>' + Object.keys(HOK.KEG).map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else {
